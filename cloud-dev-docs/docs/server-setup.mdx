@@ -136,7 +136,7 @@ services:
     environment:
       PUID: "1000"
       PGID: "1000"
-      TZ: Europe/Luxembourg
+      TZ: Europe/Rome
       PASSWORD: CHANGE_ME_WEB_PASSWORD
       SUDO_PASSWORD: CHANGE_ME_SUDO_PASSWORD
     x-casaos:
@@ -149,7 +149,7 @@ services:
             en_us: Group ID for file permissions.
         - container: TZ
           description:
-            en_us: Timezone, e.g. Europe/Luxembourg.
+            en_us: Timezone, e.g. Europe/Rome.
         - container: PASSWORD
           description:
             en_us: Password for the web desktop login.
@@ -190,7 +190,7 @@ services:
     environment:
       PUID: "1000"
       PGID: "1000"
-      TZ: Europe/Luxembourg
+      TZ: Europe/Rome
       PASSWORD: CHANGE_ME_VSCODE_PASSWORD
       DEFAULT_WORKSPACE: /projects
     x-casaos:
