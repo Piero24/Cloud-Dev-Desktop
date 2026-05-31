@@ -12,6 +12,9 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloud-dev-docs
     steps:
       - uses: actions/checkout@v4
 
@@ -19,6 +22,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: cloud-dev-docs/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -30,5 +34,4 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build
-          cname: ''  # Set this if you have a custom domain
+          publish_dir: ./cloud-dev-docs/build

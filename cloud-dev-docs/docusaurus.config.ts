@@ -3,22 +3,19 @@ import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'Cloud Dev Stack',
-  tagline: 'A containerized cloud development environment for CasaOS — accessible from anywhere, protected by 2FA.',
+  title: 'Cloud Dev Desktop',
+  tagline: 'CDD — A containerized cloud development environment for CasaOS. Accessible from anywhere, protected by 2FA.',
   favicon: 'img/favicon.ico',
 
-  // Future flags
   future: {
     v4: true,
   },
 
-  // CHANGE THESE: Replace with your GitHub username + repo name
-  // After creating the repo, the URL will be: https://<username>.github.io/<repo>/
-  url: 'https://example.github.io',
-  baseUrl: '/cloud-dev-stack/',
+  url: 'https://Piero24.github.io',
+  baseUrl: '/Cloud-Dev-Desktop/',
 
-  organizationName: 'your-github-username',
-  projectName: 'cloud-dev-stack',
+  organizationName: 'Piero24',
+  projectName: 'Cloud-Dev-Desktop',
 
   onBrokenLinks: 'throw',
   markdown: {
@@ -40,7 +37,7 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
           routeBasePath: 'docs',
           editUrl:
-            'https://github.com/your-github-username/cloud-dev-stack/edit/main/',
+            'https://github.com/Piero24/Cloud-Dev-Desktop/edit/main/cloud-dev-docs/',
         },
         blog: false,
         theme: {
@@ -57,9 +54,9 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'Cloud Dev Stack',
+      title: 'CDD',
       logo: {
-        alt: 'Cloud Dev Stack Logo',
+        alt: 'Cloud Dev Desktop Logo',
         src: 'img/logo.svg',
       },
       items: [
@@ -84,7 +81,7 @@ const config: Config = {
           position: 'left',
         },
         {
-          href: 'https://github.com/your-github-username/cloud-dev-stack',
+          href: 'https://github.com/Piero24/Cloud-Dev-Desktop',
           label: 'GitHub',
           position: 'right',
         },
@@ -116,11 +113,11 @@ const config: Config = {
         {
           title: 'More',
           items: [
-            {label: 'GitHub', href: 'https://github.com/<your-github-username>/cloud-dev-stack'},
+            {label: 'GitHub', href: 'https://github.com/Piero24/Cloud-Dev-Desktop'},
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Cloud Dev Stack. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Cloud Dev Desktop. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,
