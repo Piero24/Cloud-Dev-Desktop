@@ -1,0 +1,93 @@
+---
+sidebar_position: 5
+---
+
+# Persistence & Kill Switch
+
+## What persists and why
+
+The linuxserver images map `/config` to the abc user's home directory. This means:
+
+| What | Where | Persists across rebuilds? |
+|------|-------|---------------------------|
+| nvm + Node versions | `/config/.nvm` | ✅ Forever |
+| npm global packages | `/config/.npm-global` | ✅ Forever |
+| pip packages (`pip install`) | `/config/.local` | ✅ Forever |
+| Go packages | `/config/go` | ✅ Forever |
+| Claude Code | `/config/.npm-global` | ✅ Forever |
+| Git config (`user.name`, etc.) | `/config/.gitconfig` | ✅ Forever |
+| Shell config (`.bashrc`, `.zshrc`) | `/config` | ✅ Forever |
+| VS Code extensions (code-server) | `/config` (code-server) | ✅ Forever |
+| Project files | `/projects` (separate volume) | ✅ Forever |
+| System packages (gcc, make, docker CLI, etc.) | System dirs | ❌ Reinstalled at boot by init script |
+
+:::tip The golden rule
+If it lands in `/config`, it survives forever. If it needs `sudo` or `apt`, add it to the init script (`/DATA/AppData/cloud-dev/init.d/99-ssh.sh`).
+:::
+
+## Kill switch
+
+If the container gets too messy (too many installed packages, broken config), reset it.
+
+### Nuclear reset
+
+Wipes ALL user state (tools, packages, configs, VS Code extensions). Projects are safe:
+
+```bash
+rm -rf /DATA/AppData/cloud-dev/config/*
+rm -rf /DATA/AppData/cloud-dev/vscode-config/*
+docker restart dev-desktop dev-vscode
+```
+
+After restart, the init script runs cleanly: reinstalls system packages, nvm, Node, Claude Code. The container is fresh. Your project files at `/DATA/AppData/cloud-dev/projects` are untouched.
+
+### Surgical reset
+
+Wipe just one thing:
+
+```bash
+# Just nuke nvm + Node versions
+rm -rf /DATA/AppData/cloud-dev/config/.nvm
+
+# Just nuke Python packages
+rm -rf /DATA/AppData/cloud-dev/config/.local
+
+# Just nuke npm global packages + Claude Code
+rm -rf /DATA/AppData/cloud-dev/config/.npm-global
+
+# Just nuke shell config (rebuilt next boot by init script)
+rm /DATA/AppData/cloud-dev/config/.bashrc /DATA/AppData/cloud-dev/config/.zshrc
+```
+
+Then restart the container: `docker restart dev-desktop`.
+
+## Forcing installs to /config
+
+The init script already sets these in your `.bashrc` and `.zshrc`:
+
+```bash
+export PIP_USER=yes              # pip always installs to ~/.local
+export PIP_BREAK_SYSTEM_PACKAGES=1  # allows pip in non-venv
+export GOPATH=~/go               # go install → ~/go
+export PATH=~/go/bin:~/.npm-global/bin:$PATH  # makes npm global + go bins available
+```
+
+Plus `~/.npmrc` has `prefix=~/.npm-global` for npm.
+
+This means a bare `pip install matplotlib` goes to `/config/.local` — no `--user` flag needed. Same for npm global installs.
+
+## Adding a new language or tool permanently
+
+Two-step process:
+
+1. **If it needs `apt`:** edit `99-ssh.sh`, add the package to the `apt-get install` line, restart the container.
+2. **If it installs to your home directory:** just install it inside the container normally (`pip install`, `npm install -g`, `go install`, etc.). It persists automatically in `/config`.
+
+Example — adding Go:
+
+```bash
+# Edit 99-ssh.sh, add 'golang-go' to the apt-get line
+# Restart: docker restart dev-desktop
+# Go is now available every boot.
+# Packages you go install will live in /config/go → persist forever.
+```

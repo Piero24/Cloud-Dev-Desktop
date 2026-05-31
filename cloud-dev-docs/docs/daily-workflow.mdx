@@ -1,0 +1,44 @@
+---
+sidebar_position: 4
+---
+
+# Daily Workflow
+
+## Starting a session
+
+```bash
+# Open terminal, establish the persistent SSH tunnel
+ssh clouddev
+# → Enter password
+# → Enter 2FA code (if configured)
+# → You're connected. You can close this terminal or leave it open.
+```
+
+## While coding
+
+1. Open VS Code → open your workspace file
+2. Edit files normally
+3. When you switch away from a file (click terminal, another tab, another app), VS Code autosaves → Run on Save fires `rsync --delete` → changed files upload through the already-open SSH tunnel → no password prompt
+4. If you delete a file locally, rsync removes it from the server on the next focus change
+5. The server is now an exact mirror of your local folder at `/projects/my-project/...`
+
+## Accessing from elsewhere
+
+| Method | URL / Command | 2FA |
+|--------|---------------|-----|
+| Ubuntu Desktop (browser) | `https://desktop.yourdomain.com` | Cloudflare Zero Trust |
+| VS Code (browser) | `https://code.yourdomain.com` | Cloudflare Zero Trust |
+| SSH from Mac | `ssh clouddev` (port 3434) | Password + optional PAM 2FA at session start |
+| Autosave rsync | Automatic | None (reuses SSH tunnel) |
+
+## Ending a session
+
+The tunnel auto-closes after 16 hours of inactivity (ControlPersist). To close it manually:
+
+```bash
+ssh -O exit clouddev
+```
+
+:::note
+If the server reboots, the tunnel dies. Run `ssh clouddev` again to re-establish it. The 16-hour ControlPersist clock resets.
+:::

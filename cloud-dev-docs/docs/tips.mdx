@@ -1,0 +1,105 @@
+---
+sidebar_position: 6
+---
+
+# Tips & Troubleshooting
+
+## Dev server port forwarding
+
+If you run a dev server inside the container (e.g., `npm run dev` on port 5173), forward it to your Mac:
+
+```bash
+ssh -L 5173:localhost:5173 clouddev
+```
+
+Then open `http://localhost:5173` in your Mac's browser. Repeat for each port you need. The forwarded port stays alive as long as the SSH tunnel is open.
+
+## Keeping Claude Code up to date
+
+Claude Code updates frequently. To update inside the container:
+
+```bash
+docker exec -it dev-desktop bash
+su - abc
+source ~/.nvm/nvm.sh
+npm update -g @anthropic-ai/claude-code
+```
+
+The update persists in `/config/.npm-global` — no need to redo it after rebuilds.
+
+## 2FA inside the container (optional)
+
+The ControlMaster approach assumes SSH on the container has 2FA configured (e.g., `libpam-google-authenticator`). Setting this up:
+
+```bash
+# Exec into the container
+docker exec -it dev-desktop bash
+
+# Install Google Authenticator PAM module
+sudo apt-get install -y libpam-google-authenticator
+
+# Configure SSH to use PAM 2FA
+# Edit /etc/pam.d/sshd to add: auth required pam_google_authenticator.so
+# Edit /etc/ssh/sshd_config: ChallengeResponseAuthentication yes
+
+# As the abc user, generate a secret:
+su - abc
+google-authenticator
+# → Scan QR code with your phone
+# → Save the emergency codes
+
+sudo service ssh restart
+```
+
+Because `/config` is persistent, the `~/.google_authenticator` secret survives rebuilds automatically. You don't need to add this to the init script — do it once and it sticks.
+
+If you skip this, SSH uses password-only auth. The web interfaces are still protected by Cloudflare 2FA.
+
+## Docker-in-Docker permissions
+
+The `docker.sock` mount gives the container root access to the host's Docker daemon. The `abc` user inside the container may need to be in the `docker` group to use it without `sudo`. If you get permission errors:
+
+```bash
+docker exec -it dev-desktop bash
+sudo usermod -aG docker abc
+# Then restart the container
+```
+
+You may also need to match the host's docker GID inside the container.
+
+## Multiple projects
+
+The rsync `cmd` hardcodes the project path. For multiple projects, create separate `.code-workspace` files — one per project. Each contains its own `emeraldwalk.runonsave` command with the correct server path.
+
+## Verification Checklist
+
+```
+[ ] Containers running: docker ps | grep dev-
+[ ] Web desktop (direct): http://<ip>:3000 → login screen appears
+[ ] Web VS Code (direct): http://<ip>:9090 → login screen appears
+[ ] SSH: ssh -p 3434 abc@<ip> → password prompt, then shell access
+[ ] nvm + Node: inside container: node --version → prints version
+[ ] Claude Code: inside container: claude --version → prints version
+[ ] Shared volume: touch /projects/test in desktop → file visible in VS Code web
+[ ] Shared volume: create file in VS Code web → file visible in desktop
+[ ] NPM routing: https://desktop.yourdomain.com → desktop loads
+[ ] NPM routing: https://code.yourdomain.com → VS Code loads
+[ ] Cloudflare 2FA: visit URLs → 2FA challenge before page loads
+[ ] SSH multiplexing: ssh clouddev + auth → ssh -O check clouddev says "running"
+[ ] rsync through tunnel: rsync -avz -e 'ssh -p 3434' test.txt abc@<ip>:/projects/ → no password prompt
+[ ] VS Code autosave + rsync: edit file, click away → file appears on server
+[ ] Deletion sync: delete file locally, click away → file is gone on server
+[ ] Global gitignore: git init clean project with .vscode/ → git status shows nothing
+[ ] Persistence: docker restart dev-desktop → node --version still works, Claude Code still works
+[ ] Kill switch: rm -rf /DATA/AppData/cloud-dev/config/* && docker restart dev-desktop → container starts fresh, projects untouched
+```
+
+## Known edge cases
+
+### rsync timing
+
+If you edit a file and immediately run a command on the server that reads it, the server might still have the old version if you haven't clicked away yet. Click away from the editor first, or hit `Cmd+S` to force a save (Run on Save still fires on manual save).
+
+### First connection of the day needs a terminal
+
+You must run `ssh clouddev` from a terminal to establish the tunnel. VS Code's Run on Save will fail if the tunnel isn't open.

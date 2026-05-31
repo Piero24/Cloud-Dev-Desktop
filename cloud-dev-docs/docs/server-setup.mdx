@@ -1,0 +1,317 @@
+---
+sidebar_position: 2
+---
+
+# Server-Side Setup (CasaOS)
+
+## Step 1: Create directories on the CasaOS host
+
+```bash
+mkdir -p /DATA/AppData/cloud-dev/{config,projects,vscode-config,init.d}
+```
+
+## Step 2: Create the init script
+
+This script runs on every container boot. It installs SSH, system packages, nvm + Node LTS, Claude Code, and forces all package managers to install into `/config` (persistent).
+
+Create the file `/DATA/AppData/cloud-dev/init.d/99-ssh.sh`:
+
+```bash
+#!/bin/bash
+# ================================================================
+# Cloud Dev Stack — Container init script
+# Runs on every container boot (linuxserver cont-init.d hook)
+# Installs system packages + SSH + nvm + Node + Claude Code
+# Forces all package managers to install into /config (persistent)
+# ================================================================
+
+# ---- Helper: add line to file if not already present ----
+add_line() {
+    local line="$1" file="$2"
+    if [ -f "$file" ] && grep -qF "$line" "$file" 2>/dev/null; then
+        return 0
+    fi
+    echo "$line" >> "$file"
+}
+
+# ---- System packages (reinstalled every boot — fast) ----
+echo "[cloud-dev] Installing system packages..."
+apt-get update -qq
+apt-get install -y -qq \
+    openssh-server \
+    build-essential \
+    python3-pip \
+    python3-venv \
+    git \
+    curl \
+    docker.io \
+    zsh
+
+# ---- SSH server ----
+echo "[cloud-dev] Configuring SSH..."
+sed -i 's/#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+echo "abc:${SUDO_PASSWORD}" | chpasswd
+service ssh start
+echo "[cloud-dev] SSH server started."
+
+# ---- nvm + Node LTS (persists to /config/.nvm) ----
+if [ ! -d /config/.nvm ]; then
+    echo "[cloud-dev] Installing nvm + Node LTS..."
+    su - abc -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash'
+    su - abc -c 'export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && nvm install --lts'
+else
+    echo "[cloud-dev] nvm already installed, skipping."
+fi
+
+# ---- npm global prefix → /config ----
+if [ -d /config/.nvm ]; then
+    su - abc -c 'mkdir -p ~/.npm-global'
+    if [ ! -f /config/.npmrc ] || ! grep -q "prefix" /config/.npmrc 2>/dev/null; then
+        echo 'prefix=~/.npm-global' >> /config/.npmrc
+    fi
+fi
+
+# ---- Claude Code ----
+if [ -d /config/.nvm ]; then
+    if ! su - abc -c 'export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && which claude 2>/dev/null'; then
+        echo "[cloud-dev] Installing Claude Code..."
+        su - abc -c 'export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && npm install -g @anthropic-ai/claude-code'
+    else
+        echo "[cloud-dev] Claude Code already installed, skipping."
+    fi
+fi
+
+# ---- Shell config: force pip/npm/Go to install into /config ----
+for rcfile in /config/.bashrc /config/.zshrc; do
+    add_line 'export PIP_USER=yes' "$rcfile"
+    add_line 'export PIP_BREAK_SYSTEM_PACKAGES=1' "$rcfile"
+    add_line 'export GOPATH=~/go' "$rcfile"
+    add_line 'export PATH=~/go/bin:~/.npm-global/bin:$PATH' "$rcfile"
+    add_line 'export NVM_DIR="$HOME/.nvm"' "$rcfile"
+    add_line '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' "$rcfile"
+done
+
+# ---- DeepSeek API env vars (for Claude Code) ----
+if ! grep -q "ANTHROPIC_BASE_URL" /config/.zshrc 2>/dev/null; then
+    cat >> /config/.zshrc << 'DEEPSEEK'
+# Claude Code via DeepSeek API
+export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
+export ANTHROPIC_AUTH_TOKEN=<your DeepSeek API Key>
+export ANTHROPIC_MODEL=deepseek-v4-pro[1m]
+export ANTHROPIC_DEFAULT_OPUS_MODEL=deepseek-v4-pro[1m]
+export ANTHROPIC_DEFAULT_SONNET_MODEL=deepseek-v4-pro[1m]
+export ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek-v4-flash
+export CLAUDE_CODE_SUBAGENT_MODEL=deepseek-v4-flash
+export CLAUDE_CODE_EFFORT_LEVEL=max
+DEEPSEEK
+fi
+
+# ---- Fix ownership ----
+chown -R abc:abc /config
+
+echo "[cloud-dev] Init complete. SSH is running. nvm, Node, Claude Code are ready."
+```
+
+Make it executable:
+
+```bash
+chmod +x /DATA/AppData/cloud-dev/init.d/99-ssh.sh
+```
+
+## Step 3: Import the CasaOS Custom Install YAML
+
+In CasaOS: **App Store → Custom Install (top right) → Import → Paste the YAML below → Submit**
+
+```yaml
+name: cloud-dev-stack
+services:
+  # ================================================================
+  # UBUNTU DESKTOP — Web UI + SSH
+  # ================================================================
+  desktop:
+    image: lscr.io/linuxserver/webtop:ubuntu-xfce
+    container_name: dev-desktop
+    restart: unless-stopped
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/Luxembourg
+      PASSWORD: CHANGE_ME_WEB_PASSWORD
+      SUDO_PASSWORD: CHANGE_ME_SUDO_PASSWORD
+    x-casaos:
+      envs:
+        - container: PUID
+          description:
+            en_us: User ID for file permissions. Run 'id [USER]' on the host to get this.
+        - container: PGID
+          description:
+            en_us: Group ID for file permissions.
+        - container: TZ
+          description:
+            en_us: Timezone, e.g. Europe/Luxembourg.
+        - container: PASSWORD
+          description:
+            en_us: Password for the web desktop login.
+        - container: SUDO_PASSWORD
+          description:
+            en_us: Sudo password inside the container. Also used for SSH login.
+    ports:
+      - target: 3000
+        published: 3000
+        protocol: tcp
+      - target: 22
+        published: 3434
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /DATA/AppData/cloud-dev/config
+        target: /config
+      - type: bind
+        source: /DATA/AppData/cloud-dev/projects
+        target: /projects
+      - type: bind
+        source: /DATA/AppData/cloud-dev/init.d
+        target: /etc/cont-init.d
+        read_only: true
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+    networks:
+      - npm-network
+
+  # ================================================================
+  # VS CODE — Browser-based editor
+  # ================================================================
+  vscode:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: dev-vscode
+    restart: unless-stopped
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/Luxembourg
+      PASSWORD: CHANGE_ME_VSCODE_PASSWORD
+      DEFAULT_WORKSPACE: /projects
+    x-casaos:
+      envs:
+        - container: PASSWORD
+          description:
+            en_us: Password for the VS Code web login.
+        - container: DEFAULT_WORKSPACE
+          description:
+            en_us: Default folder to open on login. Keep as /projects to see shared files.
+    ports:
+      - target: 8080
+        published: 9090
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /DATA/AppData/cloud-dev/vscode-config
+        target: /config
+      - type: bind
+        source: /DATA/AppData/cloud-dev/projects
+        target: /projects
+    networks:
+      - npm-network
+
+networks:
+  npm-network:
+    external: true
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: desktop
+  developer: LinuxServer.io
+  author: CloudDev
+  icon: https://raw.githubusercontent.com/linuxserver/docker-templates/master/linuxserver.io/img/webtop-logo.png
+  thumbnail: https://raw.githubusercontent.com/linuxserver/docker-templates/master/linuxserver.io/img/webtop-logo.png
+  title:
+    en_us: Cloud Dev Stack
+  category: Development
+  description:
+    en_us: >
+      Cloud Dev Stack — Ubuntu XFCE desktop (browser), VS Code (browser),
+      and SSH access all sharing the same /projects folder.
+      Protected by Cloudflare Zero Trust 2FA + Nginx Proxy Manager.
+      Includes nvm, Node LTS, Claude Code, and build tools pre-installed.
+  tagline:
+    en_us: >
+      Ubuntu XFCE desktop + VS Code in your browser, plus SSH.
+      All share the same /projects folder. Protected by Cloudflare 2FA.
+  port_map: "3000,9090"
+```
+
+**Replace these values before submitting:**
+
+- `CHANGE_ME_WEB_PASSWORD` — password for the browser desktop UI
+- `CHANGE_ME_SUDO_PASSWORD` — sudo password inside the container (also used for SSH)
+- `CHANGE_ME_VSCODE_PASSWORD` — password for web VS Code login
+- `npm-network` — verify this matches your existing NPM Docker network name (`docker network ls` to check)
+- `TZ` — set to your timezone
+
+## Step 4: Replace the DeepSeek API key
+
+After the container starts for the first time, edit the persisted zshrc:
+
+```bash
+nano /DATA/AppData/cloud-dev/config/.zshrc
+# Find: ANTHROPIC_AUTH_TOKEN=<your DeepSeek API Key>
+# Replace with your actual key
+```
+
+Or from inside the container:
+
+```bash
+docker exec -it dev-desktop bash
+nano ~/.zshrc
+```
+
+## Step 5: Verify containers are running
+
+```bash
+docker ps | grep dev-
+```
+
+You should see both `dev-desktop` and `dev-vscode`.
+
+## Step 6: Test direct access (before Cloudflare/NPM)
+
+| Test | URL / Command |
+|------|---------------|
+| Web desktop | `http://<casaos-ip>:3000` — login with `PASSWORD` |
+| Web VS Code | `http://<casaos-ip>:9090` — login with `PASSWORD` |
+| SSH | `ssh -p 3434 abc@<casaos-ip>` — login with `SUDO_PASSWORD` |
+
+## Step 7: Wire up Nginx Proxy Manager
+
+In your existing NPM dashboard (port 81), add two Proxy Hosts:
+
+| Domain | Forward Hostname | Forward Port |
+|--------|-----------------|--------------|
+| `desktop.yourdomain.com` | `dev-desktop` | `3000` |
+| `code.yourdomain.com` | `dev-vscode` | `8080` |
+
+Enable SSL (Let's Encrypt) for both.
+
+:::tip
+`dev-desktop` and `dev-vscode` are Docker container names. Because they share `npm-network` with NPM, Docker's internal DNS resolves these names automatically.
+:::
+
+## Step 8: Wire up Cloudflare Zero Trust 2FA
+
+In Cloudflare Zero Trust dashboard:
+
+1. **Access → Applications → Add Application → Self-hosted**
+2. Application domain: `*.yourdomain.com` (or add each subdomain separately)
+3. **Policies → Add Policy:**
+   - Action: Allow
+   - Configure rules: email is `<your-email>`
+4. **Add an identity provider** (if not already configured):
+   - One-time PIN (emailed code) — simplest
+   - Or GitHub / Google OAuth
+5. Save
+
+Result: anyone visiting `desktop.yourdomain.com` or `code.yourdomain.com` hits a Cloudflare 2FA page before anything loads.
