@@ -36,10 +36,11 @@ chmod 700 ~/.ssh/sockets
 ```
 
 **What this does:**
-- When you run `ssh clouddev`, you enter password + 2FA once
+- When you run `ssh clouddev`, you enter password + TOTP code (from your authenticator app) once
 - SSH creates a socket file at `~/.ssh/sockets/abc@<ip>-3434`
 - For the next 16 hours, any `ssh`, `scp`, or `rsync` to the same host:port:user combo skips authentication entirely and uses the open tunnel
 - `ServerAliveInterval 60` sends a keepalive every 60 seconds so the tunnel doesn't die from inactivity
+- The TOTP code is the **same** one displayed in your authenticator app for web login
 
 ## Step 2: Global .gitignore (safety net)
 

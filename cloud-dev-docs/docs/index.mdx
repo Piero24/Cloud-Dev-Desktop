@@ -4,36 +4,42 @@ sidebar_position: 1
 
 # Overview & Architecture
 
-Cloud Dev Stack is a two-container Docker Compose stack for CasaOS that gives you a complete cloud development environment.
+Cloud Dev Stack is a four-container Docker Compose stack for CasaOS that gives you a complete cloud development environment.
 
 ## What You Get
 
 - **Browser-accessible Ubuntu desktop** — full XFCE desktop from any device
 - **Browser-accessible VS Code** — on a separate port
+- **Landing page** — unified entry point with Desktop and Code buttons
 - **SSH access** — so your Mac can edit files directly on the server
 - **Full bidirectional sync** — edit locally, changes push to the server automatically via rsync (including deletions)
 - **Persistent environment** — all user-installed packages, tools, and configs survive container rebuilds
 
-All web access is protected by your existing Cloudflare Zero Trust 2FA. SSH is protected by password + 2FA at session start, then stays open via SSH multiplexing.
+All web access goes through **Authelia** (username + password → TOTP from authenticator app). One TOTP code unlocks both web and SSH. After logging in once, you can switch between Desktop and Code without re-authenticating.
 
 ## Architecture
 
 ```
 Internet
    |
-Cloudflare Zero Trust (2FA gate — asks for OTP before anything loads)
+Nginx Proxy Manager (SSL termination, routes traffic inside Docker network)
    |
-Nginx Proxy Manager (your existing NPM, routes traffic inside Docker network)
+   +-- Authelia (user+pass → TOTP from authenticator app → session cookie)
+   |     |
+   |     +-- general.yourdomain.com --> dev-landing:80    (landing page)
+   |     +-- desktop.yourdomain.com --> dev-desktop:3000  (Ubuntu XFCE in browser)
+   |     +-- code.yourdomain.com    --> dev-vscode:8443   (VS Code in browser)
    |
-   +-- desktop.yourdomain.com --> dev-desktop:3000  (Ubuntu XFCE in browser)
-   +-- code.yourdomain.com    --> dev-vscode:8080   (VS Code in browser)
+   +-- All three domains share the same session cookie (SSO across subdomains)
 
-SSH (bypasses Cloudflare, goes direct):
-   Mac --ssh -p 3434--> dev-desktop:22  (password + 2FA once per session)
+SSH (separate, same TOTP secret):
+   Mac --ssh -p 3434--> dev-desktop:22  (password + TOTP once per session)
                          |
                     ControlMaster socket (~/.ssh/sockets/)
                          |
                     All subsequent rsync commands reuse the socket (no re-auth)
+
+Webhook: Authelia auth log → webhook script → Discord/Slack/custom URL on login
 ```
 
 ## Shared Storage

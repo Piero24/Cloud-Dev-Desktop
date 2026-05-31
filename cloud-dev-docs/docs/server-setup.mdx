@@ -7,7 +7,7 @@ sidebar_position: 2
 ## Step 1: Create directories on the CasaOS host
 
 ```bash
-mkdir -p /DATA/AppData/cloud-dev/{config,projects,vscode-config,init.d}
+mkdir -p /DATA/AppData/cloud-dev/{config,projects,vscode-config,init.d,authelia-config,landing,notifications}
 ```
 
 ## Step 2: Create the init script
@@ -137,7 +137,7 @@ services:
       PUID: "1000"
       PGID: "1000"
       TZ: Europe/Rome
-      PASSWORD: CHANGE_ME_WEB_PASSWORD
+      PASSWORD: CHANGE_ME_AUTHELIA_PASSWORD
       SUDO_PASSWORD: CHANGE_ME_SUDO_PASSWORD
     x-casaos:
       envs:
@@ -152,7 +152,7 @@ services:
             en_us: Timezone, e.g. Europe/Rome.
         - container: PASSWORD
           description:
-            en_us: Password for the web desktop login.
+            en_us: Same password as your Authelia account. KasmVNC requires its own login.
         - container: SUDO_PASSWORD
           description:
             en_us: Sudo password inside the container. Also used for SSH login.
@@ -175,6 +175,9 @@ services:
         target: /etc/cont-init.d
         read_only: true
       - type: bind
+        source: /DATA/AppData/cloud-dev/notifications
+        target: /config/notifications
+      - type: bind
         source: /var/run/docker.sock
         target: /var/run/docker.sock
     networks:
@@ -191,18 +194,18 @@ services:
       PUID: "1000"
       PGID: "1000"
       TZ: Europe/Rome
-      PASSWORD: CHANGE_ME_VSCODE_PASSWORD
+      PASSWORD: CHANGE_ME_AUTHELIA_PASSWORD
       DEFAULT_WORKSPACE: /projects
     x-casaos:
       envs:
         - container: PASSWORD
           description:
-            en_us: Password for the VS Code web login.
+            en_us: Same password as your Authelia account. Code-server requires its own login.
         - container: DEFAULT_WORKSPACE
           description:
             en_us: Default folder to open on login. Keep as /projects to see shared files.
     ports:
-      - target: 8080
+      - target: 8443
         published: 9090
         protocol: tcp
     volumes:
@@ -212,6 +215,40 @@ services:
       - type: bind
         source: /DATA/AppData/cloud-dev/projects
         target: /projects
+    networks:
+      - npm-network
+
+  # ================================================================
+  # AUTHELIA — Authentication proxy (TOTP 2FA + single sign-on)
+  # ================================================================
+  authelia:
+    image: authelia/authelia:latest
+    container_name: dev-auth
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Rome
+    volumes:
+      - type: bind
+        source: /DATA/AppData/cloud-dev/authelia-config
+        target: /config
+      - type: bind
+        source: /DATA/AppData/cloud-dev/notifications
+        target: /config/notifications
+    networks:
+      - npm-network
+
+  # ================================================================
+  # LANDING PAGE — Static page with Desktop / Code buttons
+  # ================================================================
+  landing:
+    image: nginx:alpine
+    container_name: dev-landing
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /DATA/AppData/cloud-dev/landing
+        target: /usr/share/nginx/html
+        read_only: true
     networks:
       - npm-network
 
@@ -235,20 +272,19 @@ x-casaos:
     en_us: >
       Cloud Dev Stack — Ubuntu XFCE desktop (browser), VS Code (browser),
       and SSH access all sharing the same /projects folder.
-      Protected by Cloudflare Zero Trust 2FA + Nginx Proxy Manager.
+      Protected by Authelia TOTP 2FA + Nginx Proxy Manager.
       Includes nvm, Node LTS, Claude Code, and build tools pre-installed.
   tagline:
     en_us: >
       Ubuntu XFCE desktop + VS Code in your browser, plus SSH.
-      All share the same /projects folder. Protected by Cloudflare 2FA.
-  port_map: "3000,9090"
+      All share the same /projects folder. Protected by Authelia 2FA.
+  port_map: "3000"
 ```
 
 **Replace these values before submitting:**
 
-- `CHANGE_ME_WEB_PASSWORD` — password for the browser desktop UI
+- `CHANGE_ME_AUTHELIA_PASSWORD` — your Authelia account password (used for Authelia login + app logins)
 - `CHANGE_ME_SUDO_PASSWORD` — sudo password inside the container (also used for SSH)
-- `CHANGE_ME_VSCODE_PASSWORD` — password for web VS Code login
 - `npm-network` — verify this matches your existing NPM Docker network name (`docker network ls` to check)
 - `TZ` — set to your timezone
 
@@ -275,43 +311,326 @@ nano ~/.zshrc
 docker ps | grep dev-
 ```
 
-You should see both `dev-desktop` and `dev-vscode`.
+You should see four containers: `dev-desktop`, `dev-vscode`, `dev-auth`, and `dev-landing`.
 
-## Step 6: Test direct access (before Cloudflare/NPM)
+## Step 6: Test direct access (before NPM/Authelia)
+
+These test the containers directly — no auth proxy yet:
 
 | Test | URL / Command |
 |------|---------------|
-| Web desktop | `http://<casaos-ip>:3000` — login with `PASSWORD` |
-| Web VS Code | `http://<casaos-ip>:9090` — login with `PASSWORD` |
+| Web desktop | `http://<casaos-ip>:3000` — KasmVNC login (user: `abc`, pass: `CHANGE_ME_AUTHELIA_PASSWORD`) |
+| Web VS Code | `http://<casaos-ip>:9090` — code-server login (pass: `CHANGE_ME_AUTHELIA_PASSWORD`) |
 | SSH | `ssh -p 3434 abc@<casaos-ip>` — login with `SUDO_PASSWORD` |
+
+:::note
+These direct URLs will later be routed through Authelia. The app login screens remain — KasmVNC and code-server require their own auth. Set both app passwords to the same value as your Authelia password for consistency.
+::: 
 
 ## Step 7: Wire up Nginx Proxy Manager
 
-In your existing NPM dashboard (port 81), add two Proxy Hosts:
+In your existing NPM dashboard (port 81), add three Proxy Hosts.
 
-| Domain | Forward Hostname | Forward Port |
-|--------|-----------------|--------------|
-| `desktop.yourdomain.com` | `dev-desktop` | `3000` |
-| `code.yourdomain.com` | `dev-vscode` | `8080` |
+### 7a. Create the proxy hosts
 
-Enable SSL (Let's Encrypt) for both.
+| Domain | Forward Hostname | Forward Port | WebSocket | SSL |
+|--------|-----------------|--------------|-----------|-----|
+| `general.yourdomain.com` | `dev-landing` | `80` | — | Let's Encrypt |
+| `desktop.yourdomain.com` | `dev-desktop` | `3000` | **ON** | Let's Encrypt |
+| `code.yourdomain.com` | `dev-vscode` | `8443` | **ON** | Let's Encrypt |
 
-:::tip
-`dev-desktop` and `dev-vscode` are Docker container names. Because they share `npm-network` with NPM, Docker's internal DNS resolves these names automatically.
+:::warning WebSocket support is mandatory
+Both KasmVNC (desktop) and code-server rely on WebSocket connections. Without the **WebSocket Support** toggle enabled in NPM, you'll see:
+- Desktop: login page loads, then "WebSocket disconnected. Attempting to reconnect..." loops forever
+- Code-server: connection resets or "This application requires a secure connection" errors
 :::
 
-## Step 8: Wire up Cloudflare Zero Trust 2FA
+### 7b. Add Authelia forward-auth to each proxy host
 
-In Cloudflare Zero Trust dashboard:
+In the **Advanced** tab of each proxy host, paste this:
 
-1. **Access → Applications → Add Application → Self-hosted**
-2. Application domain: `*.yourdomain.com` (or add each subdomain separately)
-3. **Policies → Add Policy:**
-   - Action: Allow
-   - Configure rules: email is `<your-email>`
-4. **Add an identity provider** (if not already configured):
-   - One-time PIN (emailed code) — simplest
-   - Or GitHub / Google OAuth
-5. Save
+```nginx
+# Authelia forward-auth — redirects to login if not authenticated
+auth_request /authelia;
+error_page 401 =302 https://general.yourdomain.com/?rd=$scheme://$http_host$request_uri;
 
-Result: anyone visiting `desktop.yourdomain.com` or `code.yourdomain.com` hits a Cloudflare 2FA page before anything loads.
+location /authelia {
+    internal;
+    proxy_pass http://dev-auth:9091/api/authz/forward-auth;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-URI $request_uri;
+    proxy_set_header X-Forwarded-Method $request_method;
+}
+```
+
+Do this for all three domains (`general`, `desktop`, `code`).
+
+**How it works:**
+- Every request first hits Authelia's `/api/authz/forward-auth`
+- If authenticated (valid session cookie) → request passes through to the backend
+- If NOT authenticated → Authelia returns 401 → user is redirected to `general.yourdomain.com` where Authelia shows the login page
+- After login + TOTP, user is redirected back to where they wanted to go
+
+:::tip
+`dev-desktop`, `dev-vscode`, `dev-auth`, and `dev-landing` are Docker container names. Because they share `npm-network` with NPM, Docker's internal DNS resolves these names automatically.
+:::
+
+## Step 8: Configure Authelia
+
+Create the Authelia configuration files in `/DATA/AppData/cloud-dev/authelia-config/`.
+
+### 8a. `configuration.yml`
+
+```yaml
+---
+theme: dark
+
+default_redirection_url: https://general.yourdomain.com
+
+server:
+  host: 0.0.0.0
+  port: 9091
+
+log:
+  level: info
+
+totp:
+  issuer: CloudDev
+  period: 30
+  skew: 1
+
+authentication_backend:
+  file:
+    path: /config/users.yml
+    password:
+      algorithm: argon2id
+      iterations: 1
+      salt_length: 16
+      parallelism: 8
+      memory: 64
+
+access_control:
+  default_policy: deny
+  rules:
+    - domain:
+        - "general.yourdomain.com"
+        - "desktop.yourdomain.com"
+        - "code.yourdomain.com"
+      policy: two_factor
+
+session:
+  name: clouddev_session
+  domain: yourdomain.com
+  secret: CHANGE_ME_SESSION_SECRET
+  expiration: 16h
+  inactivity: 2h
+
+regulation:
+  max_retries: 5
+  find_time: 2m
+  ban_time: 10m
+
+storage:
+  local:
+    path: /config/db.sqlite3
+
+notifier:
+  filesystem:
+    filename: /config/notifications/auth.log
+```
+
+:::warning Session domain
+`session.domain` must be `yourdomain.com` (no subdomain, no leading dot) so the session cookie works across `general.yourdomain.com`, `desktop.yourdomain.com`, and `code.yourdomain.com`.
+:::
+
+:::tip Session secret
+Generate a strong random secret:
+```bash
+openssl rand -base64 64 | tr -d '\n'
+```
+Replace `CHANGE_ME_SESSION_SECRET` with the output.
+:::
+
+### 8b. `users.yml`
+
+```yaml
+users:
+  your-username:
+    disabled: false
+    displayname: "Your Name"
+    password: CHANGE_ME_PASSWORD_HASH
+    email: you@example.com
+    totp:
+      secret: CHANGE_ME_TOTP_SECRET
+```
+
+**How to generate values:**
+
+1. **Password hash** — run this, enter your password when prompted:
+   ```bash
+   docker run --rm authelia/authelia:latest authelia crypto hash generate argon2
+   ```
+   Copy the output (starts with `$argon2id$...`) into the `password` field.
+
+2. **TOTP secret** — generate a base32 secret:
+   ```bash
+   openssl rand -base64 32 | tr -d '=' | tr '+/' 'AB'
+   ```
+   This is the same secret you'll add to your authenticator app (Step 10).
+
+## Step 9: Create the landing page
+
+Create `/DATA/AppData/cloud-dev/landing/index.html`:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloud Dev Stack</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh;
+    }
+    .container { text-align: center; }
+    h1 { font-size: 2.5rem; margin-bottom: 0.5rem; color: #58a6ff; }
+    p { color: #8b949e; margin-bottom: 2rem; }
+    .buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-block;
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: 1px solid #30363d;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+    .btn-desktop { background: #238636; color: #fff; border-color: #238636; }
+    .btn-desktop:hover { background: #2ea043; }
+    .btn-code { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+    .btn-code:hover { background: #388bfd; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Cloud Dev Stack</h1>
+    <p>Authenticated — choose your workspace</p>
+    <div class="buttons">
+      <a href="https://desktop.yourdomain.com" class="btn btn-desktop">Desktop</a>
+      <a href="https://code.yourdomain.com" class="btn btn-code">VS Code</a>
+    </div>
+  </div>
+</body>
+</html>
+```
+
+Replace `yourdomain.com` in both links with your actual domain.
+
+## Step 10: Enroll TOTP (authenticator app)
+
+You'll use the **same TOTP secret** for both web (Authelia) and SSH login. One authenticator app entry unlocks everything.
+
+### 10a. Add to your authenticator app
+
+Create a QR code from the secret you put in `users.yml`:
+
+```bash
+TOTP_SECRET="<your-base32-secret>"
+ISSUER="CloudDev"
+ACCOUNT="your-username"
+```
+
+Then generate a QR code URI:
+
+```
+otpauth://totp/CloudDev:your-username?secret=<secret>&issuer=CloudDev&algorithm=SHA1&digits=6&period=30
+```
+
+You can render this URI as a QR code using any online tool, or add it manually to your authenticator app (Aegis, Authy, Bitwarden, 2FAS, Raivo, etc.).
+
+### 10b. Test web login
+
+1. Visit `https://general.yourdomain.com`
+2. You should see the Authelia login page
+3. Enter your username and password
+4. Authelia prompts for a TOTP code
+5. Enter the 6-digit code from your authenticator app
+6. You're redirected to the landing page
+7. Click Desktop or Code — no re-auth needed
+
+### 10c. Set up SSH TOTP (same secret)
+
+SSH uses the **same TOTP secret**. Skip this now — you'll configure it after the containers are running. See the [SSH TOTP section in Tips & Troubleshooting](../tips#ssh-totp-same-code-as-web).
+
+## Step 11: Login webhook notifications (optional)
+
+Authelia writes authentication events to `/config/notifications/auth.log` (as configured in Step 8a). To forward these to a webhook (Discord, Slack, custom URL):
+
+### 11a. Create the webhook script
+
+Create `/DATA/AppData/cloud-dev/notifications/webhook.sh`:
+
+```bash
+#!/bin/bash
+# Tail Authelia auth log and fire webhook on successful logins
+# Run inside dev-desktop: docker exec -d dev-desktop /config/notifications/webhook.sh
+
+WEBHOOK_URL="CHANGE_ME_WEBHOOK_URL"
+LOG_FILE="/config/notifications/auth.log"
+LAST_POS=0
+
+while true; do
+  if [ -f "$LOG_FILE" ]; then
+    SIZE=$(stat -c%s "$LOG_FILE" 2>/dev/null || stat -f%z "$LOG_FILE" 2>/dev/null)
+    if [ "$SIZE" -gt "$LAST_POS" ]; then
+      NEW_LINES=$(tail -c +$((LAST_POS + 1)) "$LOG_FILE" | grep -i "successfully authenticated")
+      if [ -n "$NEW_LINES" ]; then
+        while IFS= read -r line; do
+          curl -s -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\":\"🔐 Login: $line\"}" > /dev/null 2>&1
+        done <<< "$NEW_LINES"
+      fi
+    fi
+    LAST_POS=$SIZE
+  fi
+  sleep 5
+done
+```
+
+Make it executable:
+```bash
+chmod +x /DATA/AppData/cloud-dev/notifications/webhook.sh
+```
+
+Replace `CHANGE_ME_WEBHOOK_URL` with your actual webhook URL.
+
+### 11b. Start the webhook watcher
+
+After deploying all containers, run this from the CasaOS host:
+
+```bash
+docker exec -d dev-desktop /config/notifications/webhook.sh
+```
+
+This runs in the background inside `dev-desktop` and fires your webhook whenever someone logs in successfully.
+
+To make it survive container restarts, add it to the init script (`99-ssh.sh`):
+
+```bash
+# In 99-ssh.sh, add after the "service ssh start" line:
+if [ -f /config/notifications/webhook.sh ]; then
+    nohup /config/notifications/webhook.sh > /dev/null 2>&1 &
+    echo "[cloud-dev] Webhook watcher started."
+fi
+```
