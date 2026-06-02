@@ -4,11 +4,130 @@ sidebar_position: 2
 
 # Server-Side Setup (CasaOS)
 
-## Step 1: Create directories on the CasaOS host
+## Step 1: Create directories
 
 ```bash
 mkdir -p /DATA/AppData/cloud-dev/{config,projects,vscode-config,init.d,authelia-config,landing,notifications}
 ```
+
+Then create the **self-configuring entrypoint wrapper**. Using the CasaOS file manager (or Cockpit), create a new file at `/DATA/AppData/cloud-dev/authelia-config/entrypoint-wrapper.sh` and paste the script below.
+
+On first boot, it auto-generates all secrets, hashes your password, writes both config files, and prints the TOTP secret to the container logs. On restart, it detects existing config and passes through instantly.
+
+```bash
+#!/bin/sh
+# ================================================================
+# Authelia self-configuring entrypoint wrapper
+# First run: generates configuration.yml + users.yml with all secrets
+# Prints TOTP secret to stderr → visible in: docker logs dev-auth
+# Subsequent runs: passes through to real authelia entrypoint
+# ================================================================
+
+CONFIG="/config/configuration.yml"
+
+if [ -f "$CONFIG" ]; then
+    exec /app/entrypoint.sh "$@"
+fi
+
+echo "=== Cloud Dev Stack — First run: generating Authelia config ===" >&2
+
+# Generate secrets from /dev/urandom (no external tools needed)
+SESSION_SECRET=$(head -c 64 /dev/urandom | base64 | tr -d '\n')
+ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64 | tr -d '\n')
+TOTP_SECRET=$(head -c 32 /dev/urandom | base64 | tr -d '=' | tr '+/' 'AB')
+PASSWORD_HASH=$(authelia crypto hash generate argon2 --password "$PASSWORD" 2>/dev/null)
+
+# ---- Write configuration.yml ----
+cat > "$CONFIG" << YML
+---
+theme: dark
+default_redirection_url: https://general.$DOMAIN
+server:
+  host: 0.0.0.0
+  port: 9091
+log:
+  level: info
+totp:
+  issuer: CloudDev
+  period: 30
+  skew: 1
+authentication_backend:
+  file:
+    path: /config/users.yml
+    password:
+      algorithm: argon2id
+      iterations: 1
+      salt_length: 16
+      parallelism: 8
+      memory: 64
+access_control:
+  default_policy: deny
+  rules:
+    - domain:
+        - "general.$DOMAIN"
+        - "desktop.$DOMAIN"
+        - "code.$DOMAIN"
+      policy: two_factor
+session:
+  name: clouddev_session
+  domain: $DOMAIN
+  secret: $SESSION_SECRET
+  expiration: 16h
+  inactivity: 2h
+  cookies:
+    - name: clouddev_session
+      domain: $DOMAIN
+      same_site: lax
+      authelia_url: https://general.$DOMAIN
+regulation:
+  max_retries: 5
+  find_time: 2m
+  ban_time: 10m
+storage:
+  local:
+    path: /config/db.sqlite3
+  encryption_key: $ENCRYPTION_KEY
+notifier:
+  filesystem:
+    filename: /config/notifications/auth.log
+YML
+
+# ---- Write users.yml ----
+cat > /config/users.yml << YML
+users:
+  $USERNAME:
+    disabled: false
+    displayname: "$DISPLAY_NAME"
+    password: $PASSWORD_HASH
+    email: $EMAIL
+    totp:
+      secret: $TOTP_SECRET
+YML
+
+echo "" >&2
+echo "============================================" >&2
+echo "  Authelia config auto-generated" >&2
+echo "============================================" >&2
+echo "" >&2
+echo "TOTP Secret: $TOTP_SECRET" >&2
+echo "" >&2
+echo "QR Code URI:" >&2
+echo "otpauth://totp/CloudDev:$USERNAME?secret=$TOTP_SECRET&issuer=CloudDev&algorithm=SHA1&digits=6&period=30" >&2
+echo "" >&2
+echo "Add the secret above to your authenticator app NOW." >&2
+echo "This message won't appear again on restart." >&2
+echo "============================================" >&2
+
+exec /app/entrypoint.sh "$@"
+```
+
+Make it executable:
+
+```bash
+chmod +x /DATA/AppData/cloud-dev/authelia-config/entrypoint-wrapper.sh
+```
+
+No manual secret generation. The container bootstraps itself.
 
 ## Step 2: Create the init script
 
@@ -107,10 +226,26 @@ export CLAUDE_CODE_EFFORT_LEVEL=max
 DEEPSEEK
 fi
 
+# ---- SSH TOTP (PAM) — installed each boot, config persists in /config ----
+if ! grep -q "pam_google_authenticator.so" /etc/pam.d/sshd 2>/dev/null; then
+    echo "[cloud-dev] Installing SSH TOTP (PAM)..."
+    apt-get install -y -qq libpam-google-authenticator
+    echo "auth required pam_google_authenticator.so" >> /etc/pam.d/sshd
+    sed -i 's/^ChallengeResponseAuthentication.*/ChallengeResponseAuthentication yes/' /etc/ssh/sshd_config
+    service ssh restart
+    echo "[cloud-dev] SSH TOTP enabled."
+fi
+
+# ---- Login webhook watcher (optional) ----
+if [ -f /config/notifications/webhook.sh ]; then
+    nohup /config/notifications/webhook.sh > /dev/null 2>&1 &
+    echo "[cloud-dev] Webhook watcher started."
+fi
+
 # ---- Fix ownership ----
 chown -R abc:abc /config
 
-echo "[cloud-dev] Init complete. SSH is running. nvm, Node, Claude Code are ready."
+echo "[cloud-dev] Init complete. SSH + TOTP is running. nvm, Node, Claude Code are ready."
 ```
 
 Make it executable:
@@ -220,13 +355,38 @@ services:
 
   # ================================================================
   # AUTHELIA — Authentication proxy (TOTP 2FA + single sign-on)
+  # Self-configures on first boot via entrypoint wrapper.
+  # TOTP secret appears in: docker logs dev-auth
   # ================================================================
   authelia:
     image: authelia/authelia:latest
     container_name: dev-auth
     restart: unless-stopped
+    entrypoint: /config/entrypoint-wrapper.sh
     environment:
       TZ: Europe/Rome
+      DOMAIN: yourdomain.com
+      USERNAME: your-username
+      PASSWORD: CHANGE_ME_AUTHELIA_PASSWORD
+      DISPLAY_NAME: Your Name
+      EMAIL: you@example.com
+    x-casaos:
+      envs:
+        - container: DOMAIN
+          description:
+            en_us: Your root domain (e.g. example.com). Used for session cookie, access control rules, and redirect URL.
+        - container: USERNAME
+          description:
+            en_us: Login username for Authelia.
+        - container: PASSWORD
+          description:
+            en_us: Same password as KasmVNC and code-server. Authelia login password.
+        - container: DISPLAY_NAME
+          description:
+            en_us: Your display name shown in Authelia UI.
+        - container: EMAIL
+          description:
+            en_us: Your email (shown in Authelia UI, used for notifications if SMTP added later).
     volumes:
       - type: bind
         source: /DATA/AppData/cloud-dev/authelia-config
@@ -283,8 +443,11 @@ x-casaos:
 
 **Replace these values before submitting:**
 
-- `CHANGE_ME_AUTHELIA_PASSWORD` — your Authelia account password (used for Authelia login + app logins)
+- `CHANGE_ME_AUTHELIA_PASSWORD` — your Authelia login password (also used for KasmVNC + code-server)
 - `CHANGE_ME_SUDO_PASSWORD` — sudo password inside the container (also used for SSH)
+- `yourdomain.com` (in `DOMAIN` env var) — your root domain, no subdomain (e.g., `example.com`)
+- `your-username` (in `USERNAME`) — the username you'll use to log into Authelia
+- `Your Name` / `you@example.com` — display name and email shown in Authelia UI
 - `npm-network` — verify this matches your existing NPM Docker network name (`docker network ls` to check)
 - `TZ` — set to your timezone
 
@@ -377,108 +540,50 @@ Do this for all three domains (`general`, `desktop`, `code`).
 `dev-desktop`, `dev-vscode`, `dev-auth`, and `dev-landing` are Docker container names. Because they share `npm-network` with NPM, Docker's internal DNS resolves these names automatically.
 :::
 
-## Step 8: Configure Authelia
+## Step 8: Retrieve the TOTP secret from logs
 
-Create the Authelia configuration files in `/DATA/AppData/cloud-dev/authelia-config/`.
+Authelia self-configures on first boot — no manual config files to create. After the container starts for the first time, get your TOTP secret:
 
-### 8a. `configuration.yml`
-
-```yaml
----
-theme: dark
-
-default_redirection_url: https://general.yourdomain.com
-
-server:
-  host: 0.0.0.0
-  port: 9091
-
-log:
-  level: info
-
-totp:
-  issuer: CloudDev
-  period: 30
-  skew: 1
-
-authentication_backend:
-  file:
-    path: /config/users.yml
-    password:
-      algorithm: argon2id
-      iterations: 1
-      salt_length: 16
-      parallelism: 8
-      memory: 64
-
-access_control:
-  default_policy: deny
-  rules:
-    - domain:
-        - "general.yourdomain.com"
-        - "desktop.yourdomain.com"
-        - "code.yourdomain.com"
-      policy: two_factor
-
-session:
-  name: clouddev_session
-  domain: yourdomain.com
-  secret: CHANGE_ME_SESSION_SECRET
-  expiration: 16h
-  inactivity: 2h
-
-regulation:
-  max_retries: 5
-  find_time: 2m
-  ban_time: 10m
-
-storage:
-  local:
-    path: /config/db.sqlite3
-
-notifier:
-  filesystem:
-    filename: /config/notifications/auth.log
-```
-
-:::warning Session domain
-`session.domain` must be `yourdomain.com` (no subdomain, no leading dot) so the session cookie works across `general.yourdomain.com`, `desktop.yourdomain.com`, and `code.yourdomain.com`.
-:::
-
-:::tip Session secret
-Generate a strong random secret:
 ```bash
-openssl rand -base64 64 | tr -d '\n'
+docker logs dev-auth
 ```
-Replace `CHANGE_ME_SESSION_SECRET` with the output.
+
+Look for the block that starts with `=== Authelia config auto-generated ===`. It prints:
+
+- **TOTP Secret** — the base32 secret to add to your authenticator app
+- **QR Code URI** — paste into any QR generator (or your browser's address bar) to scan with your authenticator app
+
+Example output:
+```
+============================================
+  Authelia config auto-generated
+============================================
+
+TOTP Secret: ABCDEFGHIJKLMNOPQRSTUVWXYZ234567
+
+QR Code URI:
+otpauth://totp/CloudDev:your-username?secret=ABCDEFGHIJKLMNOPQRSTUVWXYZ234567&issuer=CloudDev&algorithm=SHA1&digits=6&period=30
+
+Add the secret above to your authenticator app NOW.
+This message won't appear again on restart.
+============================================
+```
+
+:::warning Save the TOTP secret
+The secret is only printed once (first boot). If you lose it, delete `/DATA/AppData/cloud-dev/authelia-config/configuration.yml` and restart the container to regenerate. You'll need to re-enroll in your authenticator app.
 :::
 
-### 8b. `users.yml`
+### What just happened
 
-```yaml
-users:
-  your-username:
-    disabled: false
-    displayname: "Your Name"
-    password: CHANGE_ME_PASSWORD_HASH
-    email: you@example.com
-    totp:
-      secret: CHANGE_ME_TOTP_SECRET
-```
+The entrypoint wrapper (created in Step 1) ran before Authelia started and:
 
-**How to generate values:**
+1. Generated 3 cryptographically random secrets (session, encryption, TOTP) using `/dev/urandom`
+2. Hashed your password with argon2id using `authelia crypto hash generate argon2`
+3. Wrote `configuration.yml` and `users.yml` to the config volume
+4. Printed the TOTP secret to stderr (visible in `docker logs`)
+5. Chained to the real Authelia entrypoint
 
-1. **Password hash** — run this, enter your password when prompted:
-   ```bash
-   docker run --rm authelia/authelia:latest authelia crypto hash generate argon2
-   ```
-   Copy the output (starts with `$argon2id$...`) into the `password` field.
-
-2. **TOTP secret** — generate a base32 secret:
-   ```bash
-   openssl rand -base64 32 | tr -d '=' | tr '+/' 'AB'
-   ```
-   This is the same secret you'll add to your authenticator app (Step 10).
+On subsequent restarts, the wrapper detects existing config and passes through instantly — no regeneration.
 
 ## Step 9: Create the landing page
 
@@ -615,22 +720,12 @@ chmod +x /DATA/AppData/cloud-dev/notifications/webhook.sh
 
 Replace `CHANGE_ME_WEBHOOK_URL` with your actual webhook URL.
 
-### 11b. Start the webhook watcher
+### 11b. How it works
 
-After deploying all containers, run this from the CasaOS host:
+The init script (`99-ssh.sh`, Step 2) automatically starts the webhook watcher on every container boot. No manual action needed.
+
+To start it manually (without restarting the container):
 
 ```bash
 docker exec -d dev-desktop /config/notifications/webhook.sh
-```
-
-This runs in the background inside `dev-desktop` and fires your webhook whenever someone logs in successfully.
-
-To make it survive container restarts, add it to the init script (`99-ssh.sh`):
-
-```bash
-# In 99-ssh.sh, add after the "service ssh start" line:
-if [ -f /config/notifications/webhook.sh ]; then
-    nohup /config/notifications/webhook.sh > /dev/null 2>&1 &
-    echo "[cloud-dev] Webhook watcher started."
-fi
 ```
