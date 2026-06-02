@@ -10,7 +10,11 @@ sidebar_position: 2
 mkdir -p /DATA/AppData/cloud-dev/{config,projects,vscode-config,init.d,authelia-config,landing,notifications}
 ```
 
-Then create the **self-configuring entrypoint wrapper**. Using the CasaOS file manager (or Cockpit), create a new file at `/DATA/AppData/cloud-dev/authelia-config/entrypoint-wrapper.sh` and paste the script below.
+Then create the **self-configuring entrypoint wrapper**. Using the CasaOS file manager (or Cockpit), create a new file at 
+```bash
+touch /DATA/AppData/cloud-dev/authelia-config/entrypoint-wrapper.sh
+```
+and paste the script below.
 
 On first boot, it auto-generates all secrets, hashes your password, writes both config files, and prints the TOTP secret to the container logs. On restart, it detects existing config and passes through instantly.
 
@@ -34,6 +38,7 @@ echo "=== Cloud Dev Stack — First run: generating Authelia config ===" >&2
 # Generate secrets from /dev/urandom (no external tools needed)
 SESSION_SECRET=$(head -c 64 /dev/urandom | base64 | tr -d '\n')
 ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64 | tr -d '\n')
+JWT_SECRET=$(head -c 32 /dev/urandom | base64 | tr -d '\n')
 TOTP_SECRET=$(head -c 32 /dev/urandom | base64 | tr -d '=' | tr '+/' 'AB')
 PASSWORD_HASH=$(authelia crypto hash generate argon2 --password "$PASSWORD" 2>/dev/null)
 
@@ -41,10 +46,8 @@ PASSWORD_HASH=$(authelia crypto hash generate argon2 --password "$PASSWORD" 2>/d
 cat > "$CONFIG" << YML
 ---
 theme: dark
-default_redirection_url: https://general.$DOMAIN
 server:
-  host: 0.0.0.0
-  port: 9091
+  address: 'tcp://0.0.0.0:9091'
 log:
   level: info
 totp:
@@ -70,7 +73,6 @@ access_control:
       policy: two_factor
 session:
   name: clouddev_session
-  domain: $DOMAIN
   secret: $SESSION_SECRET
   expiration: 16h
   inactivity: 2h
@@ -79,6 +81,10 @@ session:
       domain: $DOMAIN
       same_site: lax
       authelia_url: https://general.$DOMAIN
+      default_redirection_url: https://general.$DOMAIN
+identity_validation:
+  reset_password:
+    jwt_secret: $JWT_SECRET
 regulation:
   max_retries: 5
   find_time: 2m
@@ -397,21 +403,6 @@ services:
     networks:
       - npm-network
 
-  # ================================================================
-  # LANDING PAGE — Static page with Desktop / Code buttons
-  # ================================================================
-  landing:
-    image: nginx:alpine
-    container_name: dev-landing
-    restart: unless-stopped
-    volumes:
-      - type: bind
-        source: /DATA/AppData/cloud-dev/landing
-        target: /usr/share/nginx/html
-        read_only: true
-    networks:
-      - npm-network
-
 networks:
   npm-network:
     external: true
@@ -474,7 +465,7 @@ nano ~/.zshrc
 docker ps | grep dev-
 ```
 
-You should see four containers: `dev-desktop`, `dev-vscode`, `dev-auth`, and `dev-landing`.
+You should see three containers: `dev-desktop`, `dev-vscode`, and `dev-auth`.
 
 ## Step 6: Test direct access (before NPM/Authelia)
 
@@ -498,7 +489,7 @@ In your existing NPM dashboard (port 81), add three Proxy Hosts.
 
 | Domain | Forward Hostname | Forward Port | WebSocket | SSL |
 |--------|-----------------|--------------|-----------|-----|
-| `general.yourdomain.com` | `dev-landing` | `80` | — | Let's Encrypt |
+| `general.yourdomain.com` | `dev-desktop` | `3000` | — | Let's Encrypt |
 | `desktop.yourdomain.com` | `dev-desktop` | `3000` | **ON** | Let's Encrypt |
 | `code.yourdomain.com` | `dev-vscode` | `8443` | **ON** | Let's Encrypt |
 
@@ -534,10 +525,37 @@ Do this for all three domains (`general`, `desktop`, `code`).
 - Every request first hits Authelia's `/api/authz/forward-auth`
 - If authenticated (valid session cookie) → request passes through to the backend
 - If NOT authenticated → Authelia returns 401 → user is redirected to `general.yourdomain.com` where Authelia shows the login page
-- After login + TOTP, user is redirected back to where they wanted to go
+- After login + TOTP, user is redirected back to where they wanted to go (general → landing page, desktop → desktop, code → VS Code)
+
+### 7c. Serve the landing page from NPM (general only)
+
+No need for a separate web server — NPM **is** nginx. Mount the landing page HTML into NPM and configure the `general` proxy host to serve it directly.
+
+**Mount the landing directory into NPM:**
+
+In CasaOS: **Apps → Nginx Proxy Manager → Settings → Volumes → Add**:
+- Host: `/DATA/AppData/cloud-dev/landing`
+- Container: `/data/landing`
+- Mode: Read Only
+
+Restart NPM after adding the volume.
+
+Then in the `general` proxy host's Advanced tab, **append** this below the forward-auth block:
+
+```nginx
+# (Authelia forward-auth block stays above — keep it)
+
+# Serve landing page from mounted volume
+root /data/landing;
+try_files $uri /index.html;
+```
+
+**How it works:** The forward-auth block runs first (verifying the session cookie). Once authenticated, `try_files` serves `index.html` from the mounted landing directory. If the HTML file is missing, requests fall through to the proxied backend (`dev-desktop:3000` — harmless fallback).
+
+The landing page HTML is fully customizable — edit `/DATA/AppData/cloud-dev/landing/index.html` anytime. Changes are live immediately (no restart needed).
 
 :::tip
-`dev-desktop`, `dev-vscode`, `dev-auth`, and `dev-landing` are Docker container names. Because they share `npm-network` with NPM, Docker's internal DNS resolves these names automatically.
+`dev-desktop`, `dev-vscode`, and `dev-auth` are Docker container names. Because they share `npm-network` with NPM, Docker's internal DNS resolves these names automatically.
 :::
 
 ## Step 8: Retrieve the TOTP secret from logs
@@ -577,7 +595,7 @@ The secret is only printed once (first boot). If you lose it, delete `/DATA/AppD
 
 The entrypoint wrapper (created in Step 1) ran before Authelia started and:
 
-1. Generated 3 cryptographically random secrets (session, encryption, TOTP) using `/dev/urandom`
+1. Generated 4 cryptographically random secrets (session, encryption, JWT, TOTP) using `/dev/urandom`
 2. Hashed your password with argon2id using `authelia crypto hash generate argon2`
 3. Wrote `configuration.yml` and `users.yml` to the config volume
 4. Printed the TOTP secret to stderr (visible in `docker logs`)
@@ -587,7 +605,7 @@ On subsequent restarts, the wrapper detects existing config and passes through i
 
 ## Step 9: Create the landing page
 
-Create `/DATA/AppData/cloud-dev/landing/index.html`:
+Create `/DATA/AppData/cloud-dev/landing/index.html` (this is the page users see at `https://general.yourdomain.com` after logging in):
 
 ```html
 <!DOCTYPE html>
@@ -641,6 +659,10 @@ Create `/DATA/AppData/cloud-dev/landing/index.html`:
 
 Replace `yourdomain.com` in both links with your actual domain.
 
+:::tip Fully customizable
+Edit `/DATA/AppData/cloud-dev/landing/index.html` anytime — changes are live immediately. Add more buttons, change styles, embed widgets — it's just static HTML served by NPM.
+:::
+
 ## Step 10: Enroll TOTP (authenticator app)
 
 You'll use the **same TOTP secret** for both web (Authelia) and SSH login. One authenticator app entry unlocks everything.
@@ -670,8 +692,8 @@ You can render this URI as a QR code using any online tool, or add it manually t
 3. Enter your username and password
 4. Authelia prompts for a TOTP code
 5. Enter the 6-digit code from your authenticator app
-6. You're redirected to the landing page
-7. Click Desktop or Code — no re-auth needed
+6. You're redirected to the landing page with Desktop / Code buttons
+7. Click Desktop or Code — no re-auth needed (SSO shares the session cookie across subdomains)
 
 ### 10c. Set up SSH TOTP (same secret)
 
@@ -679,7 +701,7 @@ SSH uses the **same TOTP secret**. Skip this now — you'll configure it after t
 
 ## Step 11: Login webhook notifications (optional)
 
-Authelia writes authentication events to `/config/notifications/auth.log` (as configured in Step 8a). To forward these to a webhook (Discord, Slack, custom URL):
+Authelia writes authentication events to `/config/notifications/auth.log` (configured by the `notifier.filesystem` section in the entrypoint wrapper from Step 1). To forward these to a webhook (Discord, Slack, custom URL):
 
 ### 11a. Create the webhook script
 

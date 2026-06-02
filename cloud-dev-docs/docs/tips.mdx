@@ -134,7 +134,7 @@ The rsync `cmd` hardcodes the project path. For multiple projects, create separa
 ## Verification Checklist
 
 ```
-[ ] All 4 containers running: docker ps | grep dev-
+[ ] All 3 containers running: docker ps | grep dev-
 [ ] Authelia login: visit https://general.yourdomain.com → login screen appears
 [ ] Username + password → TOTP prompt appears
 [ ] TOTP from authenticator app → landing page loads with Desktop / Code buttons
@@ -142,6 +142,7 @@ The rsync `cmd` hardcodes the project path. For multiple projects, create separa
 [ ] Click "Code" → VS Code loads without re-auth (SSO)
 [ ] WebSocket: desktop is responsive (no "WebSocket disconnected" loop)
 [ ] WebSocket support enabled in NPM for desktop + code proxy hosts
+[ ] Landing page: NPM volume mount for /data/landing configured
 [ ] SSH: ssh -p 3434 abc@<ip> → password prompt → TOTP prompt → shell access
 [ ] SSH TOTP: same authenticator app code works for both web and SSH
 [ ] SSH multiplexing: ssh clouddev + auth → ssh -O check clouddev says "running"

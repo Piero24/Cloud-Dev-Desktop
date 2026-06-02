@@ -4,13 +4,13 @@ sidebar_position: 1
 
 # Overview & Architecture
 
-Cloud Dev Stack is a four-container Docker Compose stack for CasaOS that gives you a complete cloud development environment.
+Cloud Dev Stack is a three-container Docker Compose stack for CasaOS that gives you a complete cloud development environment.
 
 ## What You Get
 
 - **Browser-accessible Ubuntu desktop** — full XFCE desktop from any device
 - **Browser-accessible VS Code** — on a separate port
-- **Landing page** — unified entry point with Desktop and Code buttons
+- **Landing page** — unified entry point at `general.yourdomain.com` with Desktop / Code buttons, served directly by NPM (no extra container)
 - **SSH access** — so your Mac can edit files directly on the server
 - **Full bidirectional sync** — edit locally, changes push to the server automatically via rsync (including deletions)
 - **Persistent environment** — all user-installed packages, tools, and configs survive container rebuilds
@@ -22,13 +22,13 @@ All web access goes through **Authelia** (username + password → TOTP from auth
 ```
 Internet
    |
-Nginx Proxy Manager (SSL termination, routes traffic inside Docker network)
+Nginx Proxy Manager (SSL termination, routes traffic + serves landing page)
    |
    +-- Authelia (user+pass → TOTP from authenticator app → session cookie)
    |     |
-   |     +-- general.yourdomain.com --> dev-landing:80    (landing page)
-   |     +-- desktop.yourdomain.com --> dev-desktop:3000  (Ubuntu XFCE in browser)
-   |     +-- code.yourdomain.com    --> dev-vscode:8443   (VS Code in browser)
+   |     +-- general.yourdomain.com --> [static HTML from /data/landing]  (landing page, served by NPM)
+   |     +-- desktop.yourdomain.com --> dev-desktop:3000                  (Ubuntu XFCE in browser)
+   |     +-- code.yourdomain.com    --> dev-vscode:8443                   (VS Code in browser)
    |
    +-- All three domains share the same session cookie (SSO across subdomains)
 
