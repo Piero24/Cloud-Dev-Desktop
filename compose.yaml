@@ -14,6 +14,8 @@ services:
       CUSTOM_USER: CHANGE_ME_USERNAME
       PASSWORD: CHANGE_ME_WEB_PASSWORD
       SUDO_PASSWORD: CHANGE_ME_SUDO_PASSWORD
+      CUSTOM_RES_W: "1920"
+      CUSTOM_RES_H: "1080"
     ports:
       - "3000:3000"
       - "3434:22"
@@ -45,6 +47,21 @@ services:
       - ./projects:/projects
     networks:
       - npm-network
+
+  # ================================================================
+  # BESZEL AGENT — Sends system metrics to your Beszel hub
+  # ================================================================
+  beszel-agent:
+    image: henrygd/beszel-agent:latest
+    container_name: dev-beszel-agent
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      LISTEN: "45002"
+      KEY: CHANGE_ME_BESZEL_KEY
+      EXTRA_FILESYSTEMS: /dev/sda1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
 networks:
   npm-network:
