@@ -30,12 +30,18 @@ apt-get install -y -qq \
     git \
     curl \
     docker.io \
+    tmux \
     zsh
 
 # ---- SSH server ----
 echo "[cloud-dev] Configuring SSH..."
 sed -i 's/#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
 sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+# Allow custom env vars from SSH clients (for tmux auto-attach + timeout)
+if ! grep -q "AcceptEnv TMUX_AUTO" /etc/ssh/sshd_config 2>/dev/null; then
+    echo "AcceptEnv TMUX_AUTO" >> /etc/ssh/sshd_config
+    echo "AcceptEnv TMUX_TIMEOUT" >> /etc/ssh/sshd_config
+fi
 echo "$USER:${SUDO_PASSWORD}" | chpasswd
 service ssh start
 echo "[cloud-dev] SSH server started."
@@ -49,13 +55,8 @@ else
     echo "[cloud-dev] nvm already installed, skipping."
 fi
 
-# ---- npm global prefix → /config ----
-if [ -d /config/.nvm ]; then
-    su - "$USER" -c 'mkdir -p ~/.npm-global'
-    if [ ! -f /config/.npmrc ] || ! grep -q "prefix" /config/.npmrc 2>/dev/null; then
-        echo 'prefix=~/.npm-global' >> /config/.npmrc
-    fi
-fi
+# ---- npm global prefix → /config (env var, not .npmrc — avoids nvm conflict) ----
+su - "$USER" -c 'mkdir -p ~/.npm-global'
 
 # ---- Claude Code ----
 if [ -d /config/.nvm ]; then
@@ -72,6 +73,7 @@ for rcfile in /config/.bashrc /config/.zshrc; do
     add_line 'export PIP_USER=yes' "$rcfile"
     add_line 'export PIP_BREAK_SYSTEM_PACKAGES=1' "$rcfile"
     add_line 'export GOPATH=~/go' "$rcfile"
+    add_line 'export NPM_CONFIG_PREFIX=~/.npm-global' "$rcfile"
     add_line 'export PATH=~/go/bin:~/.npm-global/bin:$PATH' "$rcfile"
     add_line 'export NVM_DIR="$HOME/.nvm"' "$rcfile"
     add_line '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' "$rcfile"
@@ -91,6 +93,49 @@ export CLAUDE_CODE_SUBAGENT_MODEL=deepseek-v4-flash
 export CLAUDE_CODE_EFFORT_LEVEL=max
 DEEPSEEK
 fi
+
+# ---- tmux: auto-attach only when client sets TMUX_AUTO=1 (e.g. iPhone/Termius) ----
+# TMUX_TIMEOUT: hours before killing a detached session (-1=never, 0=on detach, N=after N hours)
+# Set via Termius env var alongside TMUX_AUTO=1
+add_line 'if [ "$TMUX_AUTO" = "1" ] && [ -z "$TMUX" ]; then exec tmux new -A -s main; fi' /config/.bashrc
+add_line 'if [ "$TMUX_AUTO" = "1" ] && [ -z "$TMUX" ]; then exec tmux new -A -s main; fi' /config/.zshrc
+add_line 'alias ta="tmux new -A -s main"' /config/.bashrc
+add_line 'alias ta="tmux new -A -s main"' /config/.zshrc
+add_line 'alias tmux-keep="tmux setenv TMUX_KEEP 1 && echo \"Session marked keep — will never be auto-cleaned\""' /config/.bashrc
+add_line 'alias tmux-keep="tmux setenv TMUX_KEEP 1 && echo \"Session marked keep — will never be auto-cleaned\""' /config/.zshrc
+
+# ---- tmux cleanup daemon: kills detached sessions after TMUX_TIMEOUT hours ----
+cat > /usr/local/bin/tmux-cleanup.sh << 'TMUXCLEANUP'
+#!/bin/bash
+TIMEOUT="${TMUX_TIMEOUT:--1}"
+# -1 = never kill, skip entirely
+[ "$TIMEOUT" = "-1" ] && exit 0
+
+echo "[tmux-cleanup] Watching detached sessions (timeout=${TIMEOUT}h)"
+
+while true; do
+    sleep 300  # check every 5 minutes
+    tmux list-sessions -F '#{session_name} #{session_attached} #{session_activity}' 2>/dev/null | \
+    while read name attached activity; do
+        if [ "$attached" = "0" ]; then
+            # Skip sessions marked with tmux-keep
+            keep=$(tmux showenv -t "$name" TMUX_KEEP 2>/dev/null | cut -d= -f2)
+            [ "$keep" = "1" ] && continue
+            now=$(date +%s)
+            idle_hours=$(( (now - activity) / 3600 ))
+            if [ "$TIMEOUT" = "0" ] || [ "$idle_hours" -ge "$TIMEOUT" ]; then
+                tmux kill-session -t "$name" 2>/dev/null && \
+                echo "[tmux-cleanup] Killed session '$name' (detached ${idle_hours}h, limit ${TIMEOUT}h)"
+            fi
+        fi
+    done
+done
+TMUXCLEANUP
+chmod +x /usr/local/bin/tmux-cleanup.sh
+
+# Start the cleanup daemon if not already running (only when TMUX_TIMEOUT is set)
+add_line 'if [ -n "$TMUX_TIMEOUT" ] && [ "$TMUX_TIMEOUT" != "-1" ] && ! pgrep -f "tmux-cleanup" >/dev/null 2>&1; then nohup /usr/local/bin/tmux-cleanup.sh > /dev/null 2>&1 & fi' /config/.bashrc
+add_line 'if [ -n "$TMUX_TIMEOUT" ] && [ "$TMUX_TIMEOUT" != "-1" ] && ! pgrep -f "tmux-cleanup" >/dev/null 2>&1; then nohup /usr/local/bin/tmux-cleanup.sh > /dev/null 2>&1 & fi' /config/.zshrc
 
 # ---- Force English locale ----
 add_line 'export LANG=en_US.UTF-8' /config/.bashrc
