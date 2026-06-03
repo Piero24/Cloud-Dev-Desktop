@@ -15,9 +15,11 @@ curl -fsSL https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/inst
 It asks for a base path (default: `/DATA/AppData/cloud-dev`), confirms, then sets everything up.
 
 :::tip Manual setup
-If you prefer to inspect the files first or set things up manually, they're available at:
+
+If you prefer to inspect the files first or set things up manually:
 - [compose-casaos.yaml](https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/compose-casaos.yaml) — the CasaOS Docker Compose file
 - [init.sh](https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/init.sh) — the container boot script
+
 :::
 
 ## Step 2: Edit the compose values
@@ -85,13 +87,17 @@ In your existing NPM dashboard (port 81), add two Proxy Hosts:
 | `code.yourdomain.com` | `dev-vscode` | `8443` | **ON** | Let's Encrypt |
 
 :::warning WebSocket support is mandatory
+
 Both KasmVNC (desktop) and code-server rely on WebSocket connections. Without the **WebSocket Support** toggle enabled in NPM, you'll see:
 - Desktop: login page loads, then "WebSocket disconnected. Attempting to reconnect..." loops forever
 - Code-server: connection resets or "This application requires a secure connection" errors
+
 :::
 
 No Advanced tab config needed — just SSL + WebSocket. Each app has its own password (the `CHANGE_ME_WEB_PASSWORD` you set in Step 3).
 
 :::tip
+
 `dev-desktop` and `dev-vscode` are Docker container names. Because they share `npm-network` with NPM, Docker's internal DNS resolves these names automatically.
+
 :::
