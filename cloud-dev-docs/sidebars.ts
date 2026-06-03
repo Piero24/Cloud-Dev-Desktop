@@ -4,7 +4,7 @@ const sidebars: SidebarsConfig = {
   docsSidebar: [
     'index',
     'server-setup',
-    'server-setup-generic',
+    'server-setup-casaos',
     'mac-setup',
     'daily-workflow',
     'persistence',

@@ -21,7 +21,7 @@ The linuxserver images map `/config` to the abc user's home directory. This mean
 | Project files | `/projects` (separate volume) | ✅ Forever |
 | System packages (gcc, make, docker CLI, etc.) | System dirs | ❌ Reinstalled at boot by init script |
 
-:::tip The golden rule
+:::tip[The golden rule]
 If it lands in `/config`, it survives forever. If it needs `sudo` or `apt`, add it to the init script (`/DATA/AppData/cloud-dev/init.d/99-ssh.sh`).
 :::
 

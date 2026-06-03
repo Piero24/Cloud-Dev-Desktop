@@ -43,29 +43,6 @@ You may also need to match the host's docker GID inside the container.
 
 The rsync `cmd` hardcodes the project path. For multiple projects, create separate `.code-workspace` files — one per project. Each contains its own `emeraldwalk.runonsave` command with the correct server path.
 
-## Verification Checklist
-
-```
-[ ] Both containers running: docker ps | grep dev-
-[ ] Web desktop: https://desktop.yourdomain.com → login screen → password → desktop loads
-[ ] Web VS Code: https://code.yourdomain.com → login screen → password → editor loads
-[ ] WebSocket: desktop is responsive (no "WebSocket disconnected" loop)
-[ ] WebSocket support enabled in NPM for desktop + code proxy hosts
-[ ] SSH: ssh -p 3434 abc@<ip> → password prompt → shell access
-[ ] SSH multiplexing: ssh clouddev → ssh -O check clouddev says "running"
-[ ] nvm + Node: inside container: node --version → prints version
-[ ] Claude Code: inside container: claude --version → prints version
-[ ] Shared volume: touch /projects/test in desktop → file visible in VS Code web
-[ ] Shared volume: create file in VS Code web → file visible in desktop
-[ ] NPM routing: https://desktop.yourdomain.com → desktop loads via NPM SSL
-[ ] NPM routing: https://code.yourdomain.com → VS Code loads via NPM SSL
-[ ] rsync through tunnel: rsync -avz -e 'ssh -p 3434' test.txt abc@<ip>:/projects/ → no password prompt
-[ ] VS Code autosave + rsync: edit file, click away → file appears on server
-[ ] Deletion sync: delete file locally, click away → file is gone on server
-[ ] Global gitignore: git init clean project with .vscode/ → git status shows nothing
-[ ] Persistence: docker restart dev-desktop → node --version still works, Claude Code still works
-[ ] Kill switch: rm -rf /DATA/AppData/cloud-dev/config/* && docker restart dev-desktop → container starts fresh, projects untouched
-```
 
 ## Known edge cases
 

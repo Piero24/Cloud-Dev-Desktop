@@ -113,7 +113,7 @@ Create `~/Documents/Workspaces/cloud-dev.code-workspace`:
 - `--delete` means: if you deleted a file locally, it's deleted on the server too
 - rsync rides the already-open SSH ControlMaster socket → no password prompt, no 2FA
 
-:::danger Trailing slash matters
+:::danger[Trailing slash matters]
 `rsync /path/my-project/` (with trailing slash) copies the **contents** of the directory. `rsync /path/my-project` (no trailing slash) copies the **directory itself**. The workspace config uses a trailing slash on the source. Get this wrong and you'll get `/projects/my-project/my-project/` on the server.
 :::
 

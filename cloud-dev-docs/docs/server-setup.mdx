@@ -2,47 +2,57 @@
 sidebar_position: 2
 ---
 
-# Server-Side Setup (CasaOS)
+# Server-Side Setup (Generic Docker)
 
-## Step 1: Run the installer
+For any Linux server with Docker and Docker Compose installed. No CasaOS required.
 
-The installer creates directories, downloads the init script and compose file — interactive, asks where to put things.
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/install.sh | bash
-```
-
-It asks for a base path (default: `/DATA/AppData/cloud-dev`), confirms, then sets everything up.
-
-:::tip Manual setup
-
-If you prefer to inspect the files first or set things up manually:
-- [compose-casaos.yaml](https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/compose-casaos.yaml) — the CasaOS Docker Compose file
-- [init.sh](https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/init.sh) — the container boot script
-
-:::
-
-## Step 2: Edit the compose values
-
-Open the downloaded compose file and replace the placeholder values:
+## Step 1: Create directories
 
 ```bash
-nano /DATA/AppData/cloud-dev/compose-casaos.yaml
+mkdir -p cloud-dev-stack/{config,projects,vscode-config,init.d}
+cd cloud-dev-stack
 ```
 
-Replace these before submitting to CasaOS:
+## Step 2: Download the files
 
+```bash
+# Container init script
+curl -fsSL https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/init.sh \
+  -o init.d/99-ssh.sh
+chmod +x init.d/99-ssh.sh
+
+# Plain Docker Compose file (no CasaOS metadata)
+curl -fsSL https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/compose.yaml \
+  -o compose.yaml
+```
+
+## Step 3: Edit the values
+
+```bash
+nano compose.yaml
+```
+
+Replace:
 - `CHANGE_ME_USERNAME` — system username inside the container (default: `abc`). Used for SSH and file ownership
 - `CHANGE_ME_WEB_PASSWORD` — login password for both KasmVNC (desktop) and code-server
 - `CHANGE_ME_SUDO_PASSWORD` — sudo password inside the container, also used for SSH login
+- `CUSTOM_RES_W` / `CUSTOM_RES_H` — desktop resolution in pixels (default 1920x1080). Lower = bigger text/icons
 - `TZ` — set to your timezone
 - `npm-network` — verify this matches your NPM Docker network name (`docker network ls` to check)
 
-## Step 3: Import into CasaOS
+## Step 4: Create the NPM network
 
-**App Store → Custom Install (top right) → Import → Paste the content of `compose-casaos.yaml` → Submit**
+If you already have Nginx Proxy Manager running with a custom network, skip this. Otherwise create the network first:
 
-## Step 4: Verify containers are running
+```bash
+docker network create npm-network
+```
+
+## Step 5: Start the stack
+
+```bash
+docker compose up -d
+```
 
 ```bash
 docker ps | grep dev-
@@ -50,12 +60,12 @@ docker ps | grep dev-
 
 You should see two containers: `dev-desktop` and `dev-vscode`.
 
-## Step 5: Replace the DeepSeek API key
+## Step 6: Replace the DeepSeek API key
 
 After the container starts for the first time, edit the persisted zshrc:
 
 ```bash
-nano /DATA/AppData/cloud-dev/config/.zshrc
+nano config/.zshrc
 # Find: ANTHROPIC_AUTH_TOKEN=<your DeepSeek API Key>
 # Replace with your actual key
 ```
@@ -67,17 +77,17 @@ docker exec -it dev-desktop bash
 nano ~/.zshrc
 ```
 
-## Step 6: Test direct access (before NPM)
+## Step 7: Test direct access (before NPM)
 
 These test the containers directly — no proxy yet:
 
 | Test | URL / Command |
 |------|---------------|
-| Web desktop | `http://<casaos-ip>:3000` — KasmVNC login (user: your `CUSTOM_USER`, pass: `CHANGE_ME_WEB_PASSWORD`) |
-| Web VS Code | `http://<casaos-ip>:9090` — code-server login (pass: `CHANGE_ME_WEB_PASSWORD`) |
-| SSH | `ssh -p 3434 <CUSTOM_USER>@<casaos-ip>` — login with `SUDO_PASSWORD` |
+| Web desktop | `http://<server-ip>:3000` — KasmVNC login (user: your `CUSTOM_USER`, pass: `CHANGE_ME_WEB_PASSWORD`) |
+| Web VS Code | `http://<server-ip>:9090` — code-server login (pass: `CHANGE_ME_WEB_PASSWORD`) |
+| SSH | `ssh -p 3434 <CUSTOM_USER>@<server-ip>` — login with `SUDO_PASSWORD` |
 
-## Step 7: Wire up Nginx Proxy Manager
+## Step 8: Wire up Nginx Proxy Manager
 
 In your existing NPM dashboard (port 81), add two Proxy Hosts:
 
@@ -86,7 +96,7 @@ In your existing NPM dashboard (port 81), add two Proxy Hosts:
 | `desktop.yourdomain.com` | `dev-desktop` | `3000` | **ON** | Let's Encrypt |
 | `code.yourdomain.com` | `dev-vscode` | `8443` | **ON** | Let's Encrypt |
 
-:::warning WebSocket support is mandatory
+:::warning[WebSocket support is mandatory]
 
 Both KasmVNC (desktop) and code-server rely on WebSocket connections. Without the **WebSocket Support** toggle enabled in NPM, you'll see:
 - Desktop: login page loads, then "WebSocket disconnected. Attempting to reconnect..." loops forever
@@ -101,3 +111,18 @@ No Advanced tab config needed — just SSL + WebSocket. Each app has its own pas
 `dev-desktop` and `dev-vscode` are Docker container names. Because they share `npm-network` with NPM, Docker's internal DNS resolves these names automatically.
 
 :::
+
+## Step 9: Beszel agent (optional)
+
+Sends CPU, RAM, disk, and Docker metrics to your existing [Beszel](https://beszel.dev) hub.
+
+### 9a. Get the agent key
+
+In your Beszel hub UI, click **Add system** and copy the SSH public key.
+
+Paste it as `CHANGE_ME_BESZEL_KEY` in the compose file.
+
+### 9b. Verify the listen port
+
+The agent listens on port `45002` (`LISTEN` env var). Make sure your Beszel hub is configured to connect to this server on port 45002.
+
