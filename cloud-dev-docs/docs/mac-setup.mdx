@@ -1,5 +1,5 @@
 ---
-sidebar_position: 3
+sidebar_position: 4
 ---
 
 # Mac-Side Setup
@@ -23,7 +23,7 @@ Host *
 Host clouddev
     HostName <casaos-ip>
     Port 3434
-    User abc
+    User <your-username>
     ServerAliveInterval 60
     ServerAliveCountMax 3
 ```
@@ -37,7 +37,7 @@ chmod 700 ~/.ssh/sockets
 
 **What this does:**
 - When you run `ssh clouddev`, you enter your password once
-- SSH creates a socket file at `~/.ssh/sockets/abc@<ip>-3434`
+- SSH creates a socket file at `~/.ssh/sockets/<your-username>@<ip>-3434`
 - For the next 16 hours, any `ssh`, `scp`, or `rsync` to the same host:port:user combo skips authentication entirely and uses the open tunnel
 - `ServerAliveInterval 60` sends a keepalive every 60 seconds so the tunnel doesn't die from inactivity
 
@@ -92,7 +92,7 @@ Create `~/Documents/Workspaces/cloud-dev.code-workspace`:
             "commands": [
                 {
                     "match": ".*",
-                    "cmd": "rsync -avz --delete -e 'ssh -p 3434' /Users/<your-username>/Code/my-project/ abc@<casaos-ip>:/projects/my-project/"
+                    "cmd": "rsync -avz --delete -e 'ssh -p 3434' /Users/<your-username>/Code/my-project/ <your-username>@<casaos-ip>:/projects/my-project/"
                 }
             ]
         }
