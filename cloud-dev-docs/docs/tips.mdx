@@ -27,94 +27,6 @@ npm update -g @anthropic-ai/claude-code
 
 The update persists in `/config/.npm-global` — no need to redo it after rebuilds.
 
-## SSH TOTP (same code as web)
-
-SSH uses the **same TOTP secret** as web login. One authenticator app code works everywhere.
-
-**What is PAM?** PAM (Pluggable Authentication Modules) is the Linux system that handles login authentication. `libpam-google-authenticator` is a PAM module that adds TOTP to SSH. Despite the "Google" in the name, it works with **any** authenticator app (Aegis, Authy, Bitwarden, 2FAS, Raivo, etc.) — Google just wrote the PAM module.
-
-### Setup
-
-Run these commands **inside the dev-desktop container**:
-
-```bash
-# Exec into the container
-docker exec -it dev-desktop bash
-
-# Install the PAM TOTP module (reinstalled each boot — add to init script for permanence)
-sudo apt-get install -y libpam-google-authenticator
-
-# Edit /etc/pam.d/sshd — add this line:
-echo "auth required pam_google_authenticator.so" >> /etc/pam.d/sshd
-
-# Enable keyboard-interactive auth in SSH
-sed -i 's/^ChallengeResponseAuthentication.*/ChallengeResponseAuthentication yes/' /etc/ssh/sshd_config
-```
-
-### Configure your TOTP secret
-
-As the `abc` user, use the **same base32 secret** from your Authelia `users.yml`:
-
-```bash
-su - abc
-```
-
-Instead of running `google-authenticator` (which generates a new secret), manually create `~/.google_authenticator`:
-
-```bash
-cat > ~/.google_authenticator << 'EOF'
-YOUR_TOTP_SECRET_BASE32
-" RATE_LIMIT 3 30 1715091060
-" WINDOW_SIZE 17
-" DISALLOW_REUSE
-" TOTP_AUTH
-EOF
-```
-
-Replace `YOUR_TOTP_SECRET_BASE32` with the same secret from `users.yml`.
-
-Set correct permissions:
-```bash
-chmod 400 ~/.google_authenticator
-```
-
-Then restart SSH:
-```bash
-sudo service ssh restart
-```
-
-### Make it survive container rebuilds
-
-Add to `/DATA/AppData/cloud-dev/init.d/99-ssh.sh`, after the `service ssh start` line:
-
-```bash
-# ---- SSH TOTP (PAM) ----
-if ! grep -q "pam_google_authenticator.so" /etc/pam.d/sshd 2>/dev/null; then
-    apt-get install -y -qq libpam-google-authenticator
-    echo "auth required pam_google_authenticator.so" >> /etc/pam.d/sshd
-    sed -i 's/^ChallengeResponseAuthentication.*/ChallengeResponseAuthentication yes/' /etc/ssh/sshd_config
-fi
-```
-
-The `~/.google_authenticator` file lives in `/config/.google_authenticator` (persistent), so your TOTP secret survives rebuilds automatically.
-
-### Login flow
-
-```
-$ ssh clouddev
-Password: <SUDO_PASSWORD>
-Verification code: <6-digit TOTP from authenticator app>
-$   # logged in
-```
-
-The same 6-digit code shown in your authenticator app works for both:
-- Web login (Authelia)
-- SSH login (PAM)
-
-### Adding to your init script (permanent)
-
-The PAM module install is ephemeral (apt packages don't persist). Add this to your init script to install it on every boot.
-
 ## Docker-in-Docker permissions
 
 The `docker.sock` mount gives the container root access to the host's Docker daemon. The `abc` user inside the container may need to be in the `docker` group to use it without `sudo`. If you get permission errors:
@@ -134,26 +46,19 @@ The rsync `cmd` hardcodes the project path. For multiple projects, create separa
 ## Verification Checklist
 
 ```
-[ ] All 3 containers running: docker ps | grep dev-
-[ ] Authelia login: visit https://general.yourdomain.com → login screen appears
-[ ] Username + password → TOTP prompt appears
-[ ] TOTP from authenticator app → landing page loads with Desktop / Code buttons
-[ ] Click "Desktop" → desktop loads without re-auth (SSO)
-[ ] Click "Code" → VS Code loads without re-auth (SSO)
+[ ] Both containers running: docker ps | grep dev-
+[ ] Web desktop: https://desktop.yourdomain.com → login screen → password → desktop loads
+[ ] Web VS Code: https://code.yourdomain.com → login screen → password → editor loads
 [ ] WebSocket: desktop is responsive (no "WebSocket disconnected" loop)
 [ ] WebSocket support enabled in NPM for desktop + code proxy hosts
-[ ] Landing page: NPM volume mount for /data/landing configured
-[ ] SSH: ssh -p 3434 abc@<ip> → password prompt → TOTP prompt → shell access
-[ ] SSH TOTP: same authenticator app code works for both web and SSH
-[ ] SSH multiplexing: ssh clouddev + auth → ssh -O check clouddev says "running"
+[ ] SSH: ssh -p 3434 abc@<ip> → password prompt → shell access
+[ ] SSH multiplexing: ssh clouddev → ssh -O check clouddev says "running"
 [ ] nvm + Node: inside container: node --version → prints version
 [ ] Claude Code: inside container: claude --version → prints version
 [ ] Shared volume: touch /projects/test in desktop → file visible in VS Code web
 [ ] Shared volume: create file in VS Code web → file visible in desktop
-[ ] NPM routing: https://desktop.yourdomain.com → desktop loads via Authelia
-[ ] NPM routing: https://code.yourdomain.com → VS Code loads via Authelia
-[ ] NPM forward-auth: configured in Advanced tab for all 3 proxy hosts
-[ ] Webhook: login event fires webhook to configured URL (Step 11)
+[ ] NPM routing: https://desktop.yourdomain.com → desktop loads via NPM SSL
+[ ] NPM routing: https://code.yourdomain.com → VS Code loads via NPM SSL
 [ ] rsync through tunnel: rsync -avz -e 'ssh -p 3434' test.txt abc@<ip>:/projects/ → no password prompt
 [ ] VS Code autosave + rsync: edit file, click away → file appears on server
 [ ] Deletion sync: delete file locally, click away → file is gone on server

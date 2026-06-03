@@ -10,7 +10,6 @@ sidebar_position: 4
 # Open terminal, establish the persistent SSH tunnel
 ssh clouddev
 # → Enter SUDO_PASSWORD
-# → Enter TOTP code from authenticator app
 # → You're connected. You can close this terminal or leave it open.
 ```
 
@@ -26,10 +25,9 @@ ssh clouddev
 
 | Method | URL / Command | Auth |
 |--------|---------------|------|
-| Landing page | `https://general.yourdomain.com` | Username + password → TOTP |
-| Ubuntu Desktop (browser) | `https://desktop.yourdomain.com` | SSO via Authelia |
-| VS Code (browser) | `https://code.yourdomain.com` | SSO via Authelia |
-| SSH from Mac | `ssh clouddev` (port 3434) | Password + TOTP (same code as web) |
+| Ubuntu Desktop (browser) | `https://desktop.yourdomain.com` | Password |
+| VS Code (browser) | `https://code.yourdomain.com` | Password |
+| SSH from Mac | `ssh clouddev` (port 3434) | Password |
 | Autosave rsync | Automatic | None (reuses SSH tunnel) |
 
 ## Ending a session
