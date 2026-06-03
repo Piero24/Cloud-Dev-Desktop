@@ -2,7 +2,7 @@
 sidebar_position: 2
 ---
 
-# Server-Side Setup (Generic Docker)
+# Server-Side Setup
 
 For any Linux server with Docker and Docker Compose installed. No CasaOS required.
 
@@ -60,7 +60,25 @@ docker ps | grep dev-
 
 You should see two containers: `dev-desktop` and `dev-vscode`.
 
-## Step 6: Replace the DeepSeek API key
+## Step 6: Test direct access (before NPM)
+
+These test the containers directly — no proxy yet:
+
+| Test | URL / Command |
+|------|---------------|
+| Web desktop | `http://<server-ip>:3000` — KasmVNC login (user: your `CUSTOM_USER`, pass: `CHANGE_ME_WEB_PASSWORD`) |
+| Web VS Code | `http://<server-ip>:9090` — code-server login (pass: `CHANGE_ME_WEB_PASSWORD`) |
+| SSH | `ssh -p 3434 <CUSTOM_USER>@<server-ip>` — login with `SUDO_PASSWORD` |
+
+If all three work, the stack is running correctly. The rest is wiring it up for daily use.
+
+---
+
+## Post-Setup
+
+These steps are not required for the stack to run — they wire up external access, the API key, and monitoring.
+
+### Replace the DeepSeek API key
 
 After the container starts for the first time, edit the persisted zshrc:
 
@@ -77,17 +95,7 @@ docker exec -it dev-desktop bash
 nano ~/.zshrc
 ```
 
-## Step 7: Test direct access (before NPM)
-
-These test the containers directly — no proxy yet:
-
-| Test | URL / Command |
-|------|---------------|
-| Web desktop | `http://<server-ip>:3000` — KasmVNC login (user: your `CUSTOM_USER`, pass: `CHANGE_ME_WEB_PASSWORD`) |
-| Web VS Code | `http://<server-ip>:9090` — code-server login (pass: `CHANGE_ME_WEB_PASSWORD`) |
-| SSH | `ssh -p 3434 <CUSTOM_USER>@<server-ip>` — login with `SUDO_PASSWORD` |
-
-## Step 8: Wire up Nginx Proxy Manager
+### Wire up Nginx Proxy Manager
 
 In your existing NPM dashboard (port 81), add two Proxy Hosts:
 
@@ -112,17 +120,11 @@ No Advanced tab config needed — just SSL + WebSocket. Each app has its own pas
 
 :::
 
-## Step 9: Beszel agent (optional)
+### Beszel agent (optional)
 
 Sends CPU, RAM, disk, and Docker metrics to your existing [Beszel](https://beszel.dev) hub.
 
-### 9a. Get the agent key
+**Get the agent key:** In your Beszel hub UI, click **Add system** and copy the SSH public key. Paste it as `CHANGE_ME_BESZEL_KEY` in the compose file.
 
-In your Beszel hub UI, click **Add system** and copy the SSH public key.
-
-Paste it as `CHANGE_ME_BESZEL_KEY` in the compose file.
-
-### 9b. Verify the listen port
-
-The agent listens on port `45002` (`LISTEN` env var). Make sure your Beszel hub is configured to connect to this server on port 45002.
+**Verify the listen port:** The agent listens on port `45002` (`LISTEN` env var). Make sure your Beszel hub is configured to connect to this server on port 45002.
 

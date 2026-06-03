@@ -18,29 +18,55 @@ Each app has its own login password. Access is routed through Nginx Proxy Manage
 
 ## Architecture
 
-```
-Internet
-   |
-Nginx Proxy Manager (SSL termination, routes traffic)
-   |
-   +-- desktop.yourdomain.com --> dev-desktop:3000  (Ubuntu XFCE in browser)
-   +-- code.yourdomain.com    --> dev-vscode:8443   (VS Code in browser)
+```mermaid
+flowchart TB
+    Internet((Internet))
 
-SSH (separate, direct to container):
-   Mac --ssh -p 3434--> dev-desktop:22  (password once per session)
-                         |
-                    ControlMaster socket (~/.ssh/sockets/)
-                         |
-                    All subsequent rsync commands reuse the socket (no re-auth)
+    subgraph Server["Docker Host"]
+        NPM["Nginx Proxy Manager\n(SSL termination)"]
+        Desktop["dev-desktop:3000\nUbuntu XFCE"]
+        Code["dev-vscode:8443\nVS Code"]
+        Beszel["dev-beszel-agent\n(host network)"]
+        SSH["SSH daemon :22\n(published :3434)"]
+        Projects["/projects\n(shared bind mount)"]
+    end
+
+    subgraph Clients["Clients"]
+        Browser["Any Browser"]
+        Mac["Mac Terminal"]
+        Phone["iPhone / Termius"]
+    end
+
+    Internet --> NPM
+    NPM -->|"desktop.yourdomain.com"| Desktop
+    NPM -->|"code.yourdomain.com"| Code
+    Desktop --> Projects
+    Code --> Projects
+    Mac -->|"ssh -p 3434"| SSH
+    Phone -->|"ssh -p 3434 (TMUX_AUTO=1)"| SSH
+    SSH --> Desktop
+    Browser --> Internet
+    Phone --> Internet
+    Desktop -.->|"system metrics"| Beszel
+    Beszel -.->|"push to hub"| Internet
 ```
 
 ## Shared Storage
 
 Both containers mount the same host directory:
 
-```
-/DATA/AppData/cloud-dev/projects --> /projects (in desktop container)
-                                     /projects (in vscode container)
+```mermaid
+flowchart LR
+    Host["/DATA/AppData/cloud-dev/projects\n(host directory)"]
+    subgraph Desktop["dev-desktop"]
+        DProjects["/projects"]
+    end
+    subgraph VSCode["dev-vscode"]
+        VProjects["/projects"]
+    end
+
+    Host --> DProjects
+    Host --> VProjects
 ```
 
 A file saved via SSH, web VS Code, or the Ubuntu desktop is instantly visible everywhere — it's the same bytes on disk.

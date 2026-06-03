@@ -52,7 +52,25 @@ docker ps | grep dev-
 
 You should see two containers: `dev-desktop` and `dev-vscode`.
 
-## Step 5: Replace the DeepSeek API key
+## Step 5: Test direct access (before NPM)
+
+These test the containers directly — no proxy yet:
+
+| Test | URL / Command |
+|------|---------------|
+| Web desktop | `http://<casaos-ip>:3000` — KasmVNC login (user: your `CUSTOM_USER`, pass: `CHANGE_ME_WEB_PASSWORD`) |
+| Web VS Code | `http://<casaos-ip>:9090` — code-server login (pass: `CHANGE_ME_WEB_PASSWORD`) |
+| SSH | `ssh -p 3434 <CUSTOM_USER>@<casaos-ip>` — login with `SUDO_PASSWORD` |
+
+If all three work, the stack is running correctly. The rest is wiring it up for daily use.
+
+---
+
+## Post-Setup
+
+These steps are not required for the stack to run — they wire up external access, the API key, and monitoring.
+
+### Replace the DeepSeek API key
 
 After the container starts for the first time, edit the persisted zshrc:
 
@@ -69,17 +87,7 @@ docker exec -it dev-desktop bash
 nano ~/.zshrc
 ```
 
-## Step 6: Test direct access (before NPM)
-
-These test the containers directly — no proxy yet:
-
-| Test | URL / Command |
-|------|---------------|
-| Web desktop | `http://<casaos-ip>:3000` — KasmVNC login (user: your `CUSTOM_USER`, pass: `CHANGE_ME_WEB_PASSWORD`) |
-| Web VS Code | `http://<casaos-ip>:9090` — code-server login (pass: `CHANGE_ME_WEB_PASSWORD`) |
-| SSH | `ssh -p 3434 <CUSTOM_USER>@<casaos-ip>` — login with `SUDO_PASSWORD` |
-
-## Step 7: Wire up Nginx Proxy Manager
+### Wire up Nginx Proxy Manager
 
 In your existing NPM dashboard (port 81), add two Proxy Hosts:
 
@@ -96,7 +104,7 @@ Both KasmVNC (desktop) and code-server rely on WebSocket connections. Without th
 
 :::
 
-No Advanced tab config needed - just SSL + WebSocket. Each app has its own password (the `CHANGE_ME_WEB_PASSWORD` you set in Step 3).
+No Advanced tab config needed — just SSL + WebSocket. Each app has its own password (the `CHANGE_ME_WEB_PASSWORD` you set in Step 2).
 
 :::tip
 
@@ -104,22 +112,11 @@ No Advanced tab config needed - just SSL + WebSocket. Each app has its own passw
 
 :::
 
-## Step 9: Beszel monitoring (optional)
+### Beszel agent (optional)
 
-The stack includes [Beszel](https://beszel.dev) — lightweight server monitoring with CPU, RAM, disk, and Docker container metrics.
+Sends CPU, RAM, disk, and Docker metrics to your existing [Beszel](https://beszel.dev) hub.
 
-### 9a. Generate the password hash
+**Get the agent key:** In your Beszel hub UI, click **Add system** and copy the SSH public key. Paste it as `CHANGE_ME_BESZEL_KEY` in the compose file.
 
-```bash
-docker run --rm henrygd/beszel:latest hash
-# Enter your desired password
-# Copy the bcrypt hash output
-```
-
-Paste it as `CHANGE_ME_BESZEL_PASSWORD_HASH` in `compose-casaos.yaml`.
-
-### 9b. Add the NPM proxy host
-
-| Domain | Forward Hostname | Forward Port | WebSocket | SSL |
-|--------|-----------------|--------------|-----------|-----|
+**Verify the listen port:** The agent listens on port `45002` (`LISTEN` env var). Make sure your Beszel hub is configured to connect to this server on port 45002.
 
