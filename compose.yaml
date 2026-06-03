@@ -1,0 +1,51 @@
+name: cloud-dev-stack
+services:
+  # ================================================================
+  # UBUNTU DESKTOP — Web UI + SSH
+  # ================================================================
+  desktop:
+    image: lscr.io/linuxserver/webtop:ubuntu-xfce
+    container_name: dev-desktop
+    restart: unless-stopped
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/Rome
+      CUSTOM_USER: CHANGE_ME_USERNAME
+      PASSWORD: CHANGE_ME_WEB_PASSWORD
+      SUDO_PASSWORD: CHANGE_ME_SUDO_PASSWORD
+    ports:
+      - "3000:3000"
+      - "3434:22"
+    volumes:
+      - ./config:/config
+      - ./projects:/projects
+      - ./init.d:/etc/cont-init.d:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - npm-network
+
+  # ================================================================
+  # VS CODE — Browser-based editor
+  # ================================================================
+  vscode:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: dev-vscode
+    restart: unless-stopped
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/Rome
+      PASSWORD: CHANGE_ME_WEB_PASSWORD
+      DEFAULT_WORKSPACE: /projects
+    ports:
+      - "9090:8443"
+    volumes:
+      - ./vscode-config:/config
+      - ./projects:/projects
+    networks:
+      - npm-network
+
+networks:
+  npm-network:
+    external: true

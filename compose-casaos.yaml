@@ -1,0 +1,122 @@
+name: cloud-dev-stack
+services:
+  # ================================================================
+  # UBUNTU DESKTOP — Web UI + SSH
+  # ================================================================
+  desktop:
+    image: lscr.io/linuxserver/webtop:ubuntu-xfce
+    container_name: dev-desktop
+    restart: unless-stopped
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/Rome
+      CUSTOM_USER: CHANGE_ME_USERNAME
+      PASSWORD: CHANGE_ME_WEB_PASSWORD
+      SUDO_PASSWORD: CHANGE_ME_SUDO_PASSWORD
+    x-casaos:
+      envs:
+        - container: CUSTOM_USER
+          description:
+            en_us: System username inside the container (default abc). Used for SSH, file ownership, and desktop session.
+        - container: PUID
+          description:
+            en_us: User ID for file permissions. Run 'id [USER]' on the host to get this.
+        - container: PGID
+          description:
+            en_us: Group ID for file permissions.
+        - container: TZ
+          description:
+            en_us: Timezone, e.g. Europe/Rome.
+        - container: PASSWORD
+          description:
+            en_us: Login password for the KasmVNC web desktop. Also used for code-server.
+        - container: SUDO_PASSWORD
+          description:
+            en_us: Sudo password inside the container. Also used for SSH login.
+    ports:
+      - target: 3000
+        published: 3000
+        protocol: tcp
+      - target: 22
+        published: 3434
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /DATA/AppData/cloud-dev/config
+        target: /config
+      - type: bind
+        source: /DATA/AppData/cloud-dev/projects
+        target: /projects
+      - type: bind
+        source: /DATA/AppData/cloud-dev/init.d
+        target: /etc/cont-init.d
+        read_only: true
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+    networks:
+      - npm-network
+
+  # ================================================================
+  # VS CODE — Browser-based editor
+  # ================================================================
+  vscode:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: dev-vscode
+    restart: unless-stopped
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/Rome
+      PASSWORD: CHANGE_ME_WEB_PASSWORD
+      DEFAULT_WORKSPACE: /projects
+    x-casaos:
+      envs:
+        - container: PASSWORD
+          description:
+            en_us: Login password for code-server. Same as the KasmVNC desktop password.
+        - container: DEFAULT_WORKSPACE
+          description:
+            en_us: Default folder to open on login. Keep as /projects to see shared files.
+    ports:
+      - target: 8443
+        published: 9090
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /DATA/AppData/cloud-dev/vscode-config
+        target: /config
+      - type: bind
+        source: /DATA/AppData/cloud-dev/projects
+        target: /projects
+    networks:
+      - npm-network
+
+networks:
+  npm-network:
+    external: true
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: desktop
+  developer: LinuxServer.io
+  author: CloudDev
+  icon: https://raw.githubusercontent.com/linuxserver/docker-templates/master/linuxserver.io/img/webtop-logo.png
+  thumbnail: https://raw.githubusercontent.com/linuxserver/docker-templates/master/linuxserver.io/img/webtop-logo.png
+  title:
+    en_us: Cloud Dev Stack
+  category: Development
+  description:
+    en_us: >
+      Cloud Dev Stack — Ubuntu XFCE desktop (browser), VS Code (browser),
+      and SSH access all sharing the same /projects folder.
+      Protected by Nginx Proxy Manager with SSL.
+      Includes nvm, Node LTS, Claude Code, and build tools pre-installed.
+  tagline:
+    en_us: >
+      Ubuntu XFCE desktop + VS Code in your browser, plus SSH.
+      All share the same /projects folder.
+  port_map: "3000"
