@@ -20,11 +20,11 @@ while true; do
     echo "Where should Cloud Dev Stack store its data?"
     echo "(Projects, configs, and VS Code settings will live here)"
     echo ""
-    read -p "Base path [$DEFAULT_PATH]: " BASE_PATH
+    read -p "Base path [$DEFAULT_PATH]: " BASE_PATH < /dev/tty
     BASE_PATH="${BASE_PATH:-$DEFAULT_PATH}"
 
     echo ""
-    read -p "Confirm path '$BASE_PATH'? [y/N]: " CONFIRM
+    read -p "Confirm path '$BASE_PATH'? [y/N]: " CONFIRM < /dev/tty
     case "$CONFIRM" in
         [yY]|[yY][eE][sS])
             break
