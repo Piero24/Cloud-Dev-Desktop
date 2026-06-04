@@ -52,6 +52,9 @@ Next time you connect from Termius, you're back in the same session.
 | New session | `tmux new -A -s name` |
 | List sessions | `tmux ls` |
 | Manual attach anytime | `ta` (alias for `tmux new -A -s main`) |
+| Kill current session | `tmux kill-session` |
+| Kill all sessions | `tmux kill-server` |
+| Kill all except current | `tmux kill-session -a` |
 | **Keep session forever** | `tmux-keep` — prevents auto-cleanup for this session |
 
 :::tip Override the timeout
