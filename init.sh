@@ -31,7 +31,8 @@ apt-get install -y -qq \
     curl \
     docker.io \
     tmux \
-    zsh
+    zsh \
+    nano
 
 # ---- SSH server ----
 echo "[cloud-dev] Configuring SSH..."
@@ -73,15 +74,23 @@ for rcfile in /config/.bashrc /config/.zshrc; do
     add_line 'export PIP_USER=yes' "$rcfile"
     add_line 'export PIP_BREAK_SYSTEM_PACKAGES=1' "$rcfile"
     add_line 'export GOPATH=~/go' "$rcfile"
-    add_line 'export NPM_CONFIG_PREFIX=~/.npm-global' "$rcfile"
-    add_line 'export PATH=~/go/bin:~/.npm-global/bin:$PATH' "$rcfile"
     add_line 'export NVM_DIR="$HOME/.nvm"' "$rcfile"
     add_line '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' "$rcfile"
+    add_line 'export PATH=~/go/bin:~/.npm-global/bin:$PATH' "$rcfile"
 done
 
+# ---- .bash_profile: SSH login shells source this, NOT .bashrc ----
+cat > "/config/.bash_profile" << 'BASH_PROFILE'
+# Source .bashrc for login shells (SSH)
+if [ -f ~/.bashrc ]; then
+    . ~/.bashrc
+fi
+BASH_PROFILE
+
 # ---- DeepSeek API env vars (for Claude Code) ----
-if ! grep -q "ANTHROPIC_BASE_URL" /config/.zshrc 2>/dev/null; then
-    cat >> /config/.zshrc << 'DEEPSEEK'
+for dsrcfile in /config/.bashrc /config/.zshrc; do
+    if ! grep -q "ANTHROPIC_BASE_URL" "$dsrcfile" 2>/dev/null; then
+        cat >> "$dsrcfile" << 'DEEPSEEK'
 # Claude Code via DeepSeek API
 export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
 export ANTHROPIC_AUTH_TOKEN=<your DeepSeek API Key>
@@ -92,7 +101,12 @@ export ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek-v4-flash
 export CLAUDE_CODE_SUBAGENT_MODEL=deepseek-v4-flash
 export CLAUDE_CODE_EFFORT_LEVEL=max
 DEEPSEEK
-fi
+    fi
+done
+
+# ---- Default to /projects on SSH login (not inside tmux) ----
+add_line 'if [ -z "$TMUX" ]; then cd /projects; fi' /config/.bashrc
+add_line 'if [ -z "$TMUX" ]; then cd /projects; fi' /config/.zshrc
 
 # ---- tmux: auto-attach only when client sets TMUX_AUTO=1 (e.g. iPhone/Termius) ----
 # TMUX_TIMEOUT: hours before killing a detached session (-1=never, 0=on detach, N=after N hours)
