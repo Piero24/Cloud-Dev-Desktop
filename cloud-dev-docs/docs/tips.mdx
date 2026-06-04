@@ -39,6 +39,45 @@ sudo usermod -aG docker abc
 
 You may also need to match the host's docker GID inside the container.
 
+## SSH login issues
+
+### Wrong password? Use SUDO_PASSWORD
+
+SSH uses `SUDO_PASSWORD`, not `PASSWORD`. The web desktop uses `PASSWORD` for KasmVNC login — these are two different variables in the compose file.
+
+```bash
+ssh -p 3434 <username>@<server-ip>
+# Password: whatever you set as SUDO_PASSWORD
+```
+
+### CUSTOM_USER changed but still see `abc`
+
+The linuxserver base image only creates the user on **first container boot**. If you launched the container with `CUSTOM_USER: CHANGE_ME_USERNAME` (the placeholder), it created `abc`. Changing `CUSTOM_USER` later in the compose and restarting won't rename the existing user — the home directory in `/config` is already baked.
+
+**Quick fix** — set the password for the existing user:
+
+```bash
+docker exec -it -u root dev-desktop bash -c "echo 'abc:<your-sudo-password>' | chpasswd"
+```
+
+Then `ssh -p 3434 abc@<server-ip>` with that password.
+
+**Clean fix** — delete `/config` and recreate so a fresh user is created with your `CUSTOM_USER`. This also deletes installed packages (nvm, Node, Claude Code), so re-run the init.
+
+### Permission denied even with correct password
+
+SSH might not have started. Check inside the container:
+
+```bash
+docker exec -it dev-desktop service ssh status
+```
+
+If it's not running, start it:
+
+```bash
+docker exec -it -u root dev-desktop service ssh start
+```
+
 ## Multiple projects
 
 The rsync `cmd` hardcodes the project path. For multiple projects, create separate `.code-workspace` files — one per project. Each contains its own `emeraldwalk.runonsave` command with the correct server path.
