@@ -56,6 +56,43 @@ else
     echo "[cloud-dev] nvm already installed, skipping."
 fi
 
+# ---- code-server (VS Code in browser, inside desktop) ----
+# Shares extensions with the vscode container via /shared
+if ! which code-server 2>/dev/null; then
+    echo "[cloud-dev] Installing code-server..."
+    curl -fsSL https://code-server.dev/install.sh | sh
+    # Start on port 9443 (internal — access from desktop browser at localhost:9443)
+    mkdir -p /config/.config/code-server
+    cat > /config/.config/code-server/config.yaml << CSYAML
+bind-addr: 127.0.0.1:9443
+auth: password
+password: ${PASSWORD}
+cert: false
+CSYAML
+    # Create systemd service
+    cat > /etc/systemd/system/code-server.service << CSSERVICE
+[Unit]
+Description=code-server
+After=network.target
+
+[Service]
+Type=simple
+User=$USER
+ExecStart=/usr/bin/code-server
+Restart=on-failure
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=multi-user.target
+CSSERVICE
+    systemctl daemon-reload
+    systemctl enable code-server
+    systemctl start code-server
+    echo "[cloud-dev] code-server installed — http://localhost:9443 inside desktop"
+else
+    echo "[cloud-dev] code-server already installed, skipping."
+fi
+
 # ---- npm global prefix → /config (env var, not .npmrc — avoids nvm conflict) ----
 su - "$USER" -c 'mkdir -p ~/.npm-global'
 
@@ -87,22 +124,75 @@ if [ -f ~/.bashrc ]; then
 fi
 BASH_PROFILE
 
-# ---- DeepSeek API env vars (for Claude Code) ----
+# ---- Claude Code API env vars (from Compose env) ----
+# Written fresh on every boot — edit compose.yaml to change values
 for dsrcfile in /config/.bashrc /config/.zshrc; do
-    if ! grep -q "ANTHROPIC_BASE_URL" "$dsrcfile" 2>/dev/null; then
-        cat >> "$dsrcfile" << 'DEEPSEEK'
-# Claude Code via DeepSeek API
-export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
-export ANTHROPIC_AUTH_TOKEN=<your DeepSeek API Key>
-export ANTHROPIC_MODEL=deepseek-v4-pro[1m]
-export ANTHROPIC_DEFAULT_OPUS_MODEL=deepseek-v4-pro[1m]
-export ANTHROPIC_DEFAULT_SONNET_MODEL=deepseek-v4-pro[1m]
-export ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek-v4-flash
-export CLAUDE_CODE_SUBAGENT_MODEL=deepseek-v4-flash
-export CLAUDE_CODE_EFFORT_LEVEL=max
-DEEPSEEK
-    fi
+    sed -i '/^# >>> Claude Code/,/^# <<< Claude Code/d' "$dsrcfile" 2>/dev/null
+    cat >> "$dsrcfile" << CLAUDECODE
+# >>> Claude Code (set from Compose env — edit compose.yaml to change)
+$( [ -n "${ANTHROPIC_BASE_URL}" ] && echo "export ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}" )
+export ANTHROPIC_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN:-CHANGE_ME_ANTHROPIC_KEY}
+export ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-opus-4-8}
+export ANTHROPIC_DEFAULT_OPUS_MODEL=${ANTHROPIC_DEFAULT_OPUS_MODEL:-claude-opus-4-8}
+export ANTHROPIC_DEFAULT_SONNET_MODEL=${ANTHROPIC_DEFAULT_SONNET_MODEL:-claude-sonnet-4-6}
+export ANTHROPIC_DEFAULT_HAIKU_MODEL=${ANTHROPIC_DEFAULT_HAIKU_MODEL:-claude-haiku-4-5}
+export CLAUDE_CODE_SUBAGENT_MODEL=${CLAUDE_CODE_SUBAGENT_MODEL:-claude-haiku-4-5}
+export CLAUDE_CODE_EFFORT_LEVEL=${CLAUDE_CODE_EFFORT_LEVEL:-max}
+# <<< Claude Code
+CLAUDECODE
 done
+
+# ---- Write env vars to /shared so vscode container picks them up ----
+cat > /shared/.cloud-dev-env << SHAREDENV
+# Shared env vars — written by desktop init, read by vscode container
+$( [ -n "${ANTHROPIC_BASE_URL}" ] && echo "export ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}" )
+export ANTHROPIC_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN:-CHANGE_ME_ANTHROPIC_KEY}
+export ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-opus-4-8}
+export ANTHROPIC_DEFAULT_OPUS_MODEL=${ANTHROPIC_DEFAULT_OPUS_MODEL:-claude-opus-4-8}
+export ANTHROPIC_DEFAULT_SONNET_MODEL=${ANTHROPIC_DEFAULT_SONNET_MODEL:-claude-sonnet-4-6}
+export ANTHROPIC_DEFAULT_HAIKU_MODEL=${ANTHROPIC_DEFAULT_HAIKU_MODEL:-claude-haiku-4-5}
+export CLAUDE_CODE_SUBAGENT_MODEL=${CLAUDE_CODE_SUBAGENT_MODEL:-claude-haiku-4-5}
+export CLAUDE_CODE_EFFORT_LEVEL=${CLAUDE_CODE_EFFORT_LEVEL:-max}
+SHAREDENV
+echo "[cloud-dev] Env vars written to /shared/.cloud-dev-env"
+
+# ---- Shared VS Code extensions (via /shared) ----
+# Symlinks so both containers use the same extensions & settings
+USER_HOME="/home/$USER"
+[ ! -d "$USER_HOME" ] && USER_HOME="/config"
+
+CS_DATA="$USER_HOME/.local/share/code-server"
+SHARED_EXT="/shared/code-server/extensions"
+SHARED_USER="/shared/code-server/User"
+
+mkdir -p "$SHARED_EXT" "$SHARED_USER"
+
+# Migrate local extensions to shared on first boot
+if [ -d "$CS_DATA/extensions" ] && [ ! -L "$CS_DATA/extensions" ] && [ -z "$(ls -A "$SHARED_EXT" 2>/dev/null)" ]; then
+    cp -r "$CS_DATA/extensions"/* "$SHARED_EXT/" 2>/dev/null || true
+fi
+if [ -d "$CS_DATA/User" ] && [ ! -L "$CS_DATA/User" ] && [ -z "$(ls -A "$SHARED_USER" 2>/dev/null)" ]; then
+    cp -r "$CS_DATA/User"/* "$SHARED_USER/" 2>/dev/null || true
+fi
+
+# Replace with symlinks to shared
+mkdir -p "$CS_DATA"
+rm -rf "$CS_DATA/extensions" "$CS_DATA/User"
+ln -sf "$SHARED_EXT" "$CS_DATA/extensions"
+ln -sf "$SHARED_USER" "$CS_DATA/User"
+echo "[cloud-dev] Code-server extensions & settings shared via /shared"
+
+# ---- Git / GitHub config (from Compose env) ----
+if [ -n "${GIT_USER_NAME}" ] && [ "${GIT_USER_NAME}" != "CHANGE_ME_GIT_NAME" ]; then
+    su - "$USER" -c "git config --global user.name '${GIT_USER_NAME}'"
+    su - "$USER" -c "git config --global user.email '${GIT_USER_EMAIL}'"
+    echo "[cloud-dev] Git configured: ${GIT_USER_NAME} <${GIT_USER_EMAIL}>"
+fi
+
+if [ -n "${GITHUB_TOKEN}" ] && [ "${GITHUB_TOKEN}" != "CHANGE_ME_GITHUB_TOKEN" ]; then
+    su - "$USER" -c "git config --global url.'https://oauth2:${GITHUB_TOKEN}@github.com/'.insteadOf 'https://github.com/'"
+    echo "[cloud-dev] GitHub token configured (fine-grained PAT)"
+fi
 
 # ---- Default to /projects on SSH login (not inside tmux) ----
 add_line 'if [ -z "$TMUX" ]; then cd /projects; fi' /config/.bashrc
@@ -152,9 +242,11 @@ add_line 'if [ -n "$TMUX_TIMEOUT" ] && [ "$TMUX_TIMEOUT" != "-1" ] && ! pgrep -f
 add_line 'if [ -n "$TMUX_TIMEOUT" ] && [ "$TMUX_TIMEOUT" != "-1" ] && ! pgrep -f "tmux-cleanup" >/dev/null 2>&1; then nohup /usr/local/bin/tmux-cleanup.sh > /dev/null 2>&1 & fi' /config/.zshrc
 
 # ---- Force English locale ----
-add_line 'export LANG=en_US.UTF-8' /config/.bashrc
-add_line 'export LANGUAGE=en_US:en' /config/.bashrc
-add_line 'export LC_ALL=en_US.UTF-8' /config/.bashrc
+for locfile in /config/.bashrc /config/.zshrc; do
+    add_line 'export LANG=en_US.UTF-8' "$locfile"
+    add_line 'export LANGUAGE=en_US:en' "$locfile"
+    add_line 'export LC_ALL=en_US.UTF-8' "$locfile"
+done
 
 # ---- Fix ownership ----
 chown -R "$USER:$USER" /config
