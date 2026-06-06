@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/with-contenv bash
 # ================================================================
 # Cloud Dev Stack — Container init script
 # Runs on every container boot (linuxserver cont-init.d hook)
@@ -6,8 +6,21 @@
 # Forces all package managers to install into /config (persistent)
 # ================================================================
 
-# ---- Use custom username if set, otherwise default to abc ----
-USER="${CUSTOM_USER:-abc}"
+# ---- Detect actual user by UID (more reliable than CUSTOM_USER) ----
+# linuxserver may ignore CUSTOM_USER if /config already has data from a previous user.
+# We resolve by PUID to always set the password for the user that actually exists.
+DEFAULT_USER="abc"
+ACTUAL_USER=$(getent passwd "$PUID" 2>/dev/null | cut -d: -f1)
+if [ -n "$ACTUAL_USER" ] && [ "$ACTUAL_USER" != "root" ]; then
+    USER="$ACTUAL_USER"
+    echo "[cloud-dev] Detected user: '$USER' (UID=$PUID, CUSTOM_USER env=${CUSTOM_USER:-unset})"
+elif [ -n "$CUSTOM_USER" ]; then
+    USER="$CUSTOM_USER"
+    echo "[cloud-dev] Using CUSTOM_USER: '$USER' (UID=$PUID, actual user not found)"
+else
+    USER="$DEFAULT_USER"
+    echo "[cloud-dev] Falling back to default: '$USER' (UID=$PUID)"
+fi
 
 # ---- Helper: add line to file if not already present ----
 add_line() {

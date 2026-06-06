@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/with-contenv bash
 # ================================================================
 # Cloud Dev Stack — VSCode container init script
 # /config, /projects, and /shared are the same volumes as desktop.
