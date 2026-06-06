@@ -1,6 +1,6 @@
 # Cloud Dev Stack
 
-A Docker Compose stack that gives you a complete, persistent cloud development environment — Ubuntu desktop, VS Code, and SSH, all sharing the same files.
+One environment, two browser-based views. A Docker Compose stack that gives you a complete, persistent cloud development workspace — Ubuntu desktop, VS Code, and SSH, all sharing the same home directory and files.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/install.sh | bash
@@ -10,11 +10,38 @@ curl -fsSL https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/inst
 
 | Service | Image | Purpose |
 |---------|-------|---------|
-| **desktop** | `linuxserver/webtop:ubuntu-xfce` | Full Ubuntu XFCE desktop in your browser + SSH |
-| **vscode** | `linuxserver/code-server:latest` | VS Code in your browser, same `/projects` folder |
+| **desktop** | `linuxserver/webtop:ubuntu-xfce` | Full Ubuntu XFCE desktop + SSH + code-server |
+| **vscode** | `linuxserver/code-server:latest` | VS Code in your browser, same home + files |
 | **beszel-agent** | `henrygd/beszel-agent:latest` | System metrics → your existing Beszel hub |
 
-Pre-installed: nvm + Node LTS, Claude Code, build-essential, Python, Java, Docker CLI, tmux, zsh.
+Both containers share `/config` (home directory) and `/projects`. Install a package or change a setting — it appears in both instantly. The vscode container is a browser-based editor view into the same environment.
+
+Pre-installed: nvm + Node LTS, Claude Code, code-server, build-essential, Python, Java, Docker CLI, tmux, zsh.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Internet((Internet))
+
+    subgraph Host["Docker Host"]
+        NPM["Nginx Proxy Manager\n(SSL)"]
+        subgraph Volumes["Shared"]
+            Config["/config\n(home: shell, git, nvm, packages)"]
+            Projects["/projects\n(your code)"]
+        end
+        Desktop["dev-desktop:3000\nUbuntu XFCE + SSH :3434"]
+        Code["dev-vscode:8443\nVS Code"]
+    end
+
+    Internet --> NPM
+    NPM -->|"desktop.yourdomain.com"| Desktop
+    NPM -->|"code.yourdomain.com"| Code
+    Desktop --> Config
+    Desktop --> Projects
+    Code --> Config
+    Code --> Projects
+```
 
 ## Quickstart
 
@@ -24,69 +51,29 @@ Pre-installed: nvm + Node LTS, Claude Code, build-essential, Python, Java, Docke
 curl -fsSL https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/install.sh | bash
 ```
 
-The installer asks where to store data, downloads the compose file and init script, then prints next steps.
+The installer asks where to store data, downloads everything, then prints next steps.
 
 ### Plain Docker
 
 ```bash
-# 1. Clone
 git clone https://github.com/Piero24/Cloud-Dev-Desktop.git
 cd Cloud-Dev-Desktop
 
-# 2. Create the NPM network
+# Create the NPM network (if not already present)
 docker network create npm-network
 
-# 3. Edit values
-nano compose.yaml   # CHANGE_ME_USERNAME, CHANGE_ME_WEB_PASSWORD, CHANGE_ME_SUDO_PASSWORD
-
-# 4. Start
+# Edit values in compose.yaml, then:
 docker compose up -d
 ```
 
-## Architecture
-
-```mermaid
-flowchart LR
-    Internet((Internet))
-
-    subgraph Server["Docker Host"]
-        NPM["Nginx Proxy Manager\n(SSL termination)"]
-        Desktop["dev-desktop:3000\nUbuntu XFCE"]
-        Code["dev-vscode:8443\nVS Code"]
-        Beszel["dev-beszel-agent\n(host network)"]
-        SSH["SSH :3434 → :22"]
-        Projects["/projects\n(shared volume)"]
-    end
-
-    subgraph Clients["Clients"]
-        Browser["Browser"]
-        Mac["Mac / PC"]
-        Phone["iPhone / Termius"]
-    end
-
-    Internet --> NPM
-    NPM -->|"desktop.yourdomain.com"| Desktop
-    NPM -->|"code.yourdomain.com"| Code
-    Desktop --> Projects
-    Code --> Projects
-    Mac -->|"ssh -p 3434"| SSH
-    Phone -->|"ssh -p 3434"| SSH
-    SSH --> Desktop
-    Browser --> Internet
-    Phone --> Internet
-    Desktop -.->|"metrics"| Beszel
-    Beszel -.->|"push"| Internet
-```
-
-Both containers mount the same `/projects` directory — edit a file anywhere, see it everywhere.
-
 ## Key features
 
-- **Custom username** — set `CUSTOM_USER` in the compose file, no more `abc`
-- **Persistent sessions** — tmux auto-attach from iPhone/Termius via `TMUX_AUTO=1` env var; sessions survive disconnects
+- **One environment, two views** — both containers share `/config` (home) and `/projects`. Same shell, git, nvm, packages everywhere
+- **Custom username** — set `CUSTOM_USER` in the compose file
+- **Persistent sessions** — tmux auto-attach from iPhone/Termius via `TMUX_AUTO=1`; sessions survive disconnects
 - **Configurable cleanup** — `TMUX_TIMEOUT` auto-kills detached sessions after N hours; `tmux-keep` overrides it
-- **Persistent packages** — everything in `/config` survives container rebuilds (nvm, Node, Claude Code, pip packages, npm globals)
-- **No Mac required** — work entirely from a browser and SSH; optional Mac-side rsync sync documented
+- **Persistent packages** — everything in `/config` survives container rebuilds
+- **No Mac required** — work entirely from a browser and SSH
 - **Monitoring** — Beszel agent feeds system metrics to your existing hub
 
 ## Files
@@ -95,23 +82,26 @@ Both containers mount the same `/projects` directory — edit a file anywhere, s
 |------|---------|
 | [`compose.yaml`](compose.yaml) | Plain Docker Compose (short syntax, relative paths) |
 | [`compose-casaos.yaml`](compose-casaos.yaml) | CasaOS Compose (long syntax, `x-casaos` metadata) |
-| [`init.sh`](init.sh) | Container boot script — installs SSH, nvm, Node, Claude Code, tmux |
-| [`install.sh`](install.sh) | Interactive installer — downloads files and sets up directories |
+| [`init.sh`](init.sh) | Desktop container boot script — SSH, nvm, Node, Claude Code, code-server |
+| [`init.d/99-vscode-env.sh`](init.d/99-vscode-env.sh) | VSCode container boot script — shared extensions |
+| [`install.sh`](install.sh) | Interactive CasaOS installer |
 
 ## Docs
 
 Full documentation at [`cloud-dev-docs/`](cloud-dev-docs/):
 
-- [Server Setup](cloud-dev-docs/docs/server-setup.mdx) — plain Docker setup
-- [Server Setup (CasaOS)](cloud-dev-docs/docs/server-setup-casaos.mdx) — CasaOS import setup
-- [Mac-Side Setup](cloud-dev-docs/docs/mac-setup.mdx) — optional Mac SSH + rsync config
+- [Overview & Architecture](cloud-dev-docs/docs/index.mdx)
+- [Server Setup](cloud-dev-docs/docs/server-setup.mdx) — Docker or CasaOS (single page with tabs)
+- [Mac-Side Setup](cloud-dev-docs/docs/mac-setup.mdx) — optional local editing with auto-sync
 - [Daily Workflow](cloud-dev-docs/docs/daily-workflow.mdx) — tmux, persistent sessions, Termius
+- [Persistence & Kill Switch](cloud-dev-docs/docs/persistence.mdx)
+- [Environment Variables](cloud-dev-docs/docs/env-vars.mdx) — full reference
 - [Tips & Troubleshooting](cloud-dev-docs/docs/tips.mdx)
 
 ## Requirements
 
 - Docker + Docker Compose
-- Nginx Proxy Manager with an `npm-network` (or adjust the network config)
+- Nginx Proxy Manager with an `npm-network` (or adjust network config)
 - A domain name with DNS pointing to your server (for SSL via NPM)
 - Optional: [Beszel hub](https://github.com/henrygd/beszel) running elsewhere (for the agent)
 
