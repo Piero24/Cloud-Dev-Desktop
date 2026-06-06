@@ -43,7 +43,19 @@ if ! grep -q "AcceptEnv TMUX_AUTO" /etc/ssh/sshd_config 2>/dev/null; then
     echo "AcceptEnv TMUX_AUTO" >> /etc/ssh/sshd_config
     echo "AcceptEnv TMUX_TIMEOUT" >> /etc/ssh/sshd_config
 fi
-echo "$USER:${SUDO_PASSWORD}" | chpasswd
+
+# Set user password for SSH (runs every boot — /etc/shadow is not persisted)
+if [ -n "$SUDO_PASSWORD" ] && [ "$SUDO_PASSWORD" != "CHANGE_ME_SUDO_PASSWORD" ]; then
+    printf '%s:%s' "$USER" "$SUDO_PASSWORD" | chpasswd 2>/dev/null && \
+        echo "[cloud-dev] SSH password set for $USER" || \
+        echo "[cloud-dev] ERROR: chpasswd failed for $USER"
+elif [ -z "$SUDO_PASSWORD" ]; then
+    echo "[cloud-dev] WARNING: SUDO_PASSWORD is empty — SSH password NOT set!"
+    echo "[cloud-dev] Check that SUDO_PASSWORD is set in compose.yaml"
+else
+    echo "[cloud-dev] WARNING: SUDO_PASSWORD is still the placeholder — SSH password NOT set!"
+fi
+
 service ssh start
 echo "[cloud-dev] SSH server started."
 
@@ -58,10 +70,16 @@ fi
 
 # ---- code-server (VS Code in browser, inside desktop) ----
 # Shares extensions with the vscode container via /shared
-if ! which code-server 2>/dev/null; then
+# Runs in background on port 9443 — access from desktop browser at localhost:9443
+if [ ! -f /usr/local/bin/code-server ]; then
     echo "[cloud-dev] Installing code-server..."
-    curl -fsSL https://code-server.dev/install.sh | sh
-    # Start on port 9443 (internal — access from desktop browser at localhost:9443)
+    export HOME=/root
+    curl -fsSL https://code-server.dev/install.sh | sh -s -- --method standalone
+    echo "[cloud-dev] code-server binary installed"
+fi
+
+# Start code-server if not already running
+if ! pgrep -f "code-server.*9443" >/dev/null 2>&1; then
     mkdir -p /config/.config/code-server
     cat > /config/.config/code-server/config.yaml << CSYAML
 bind-addr: 127.0.0.1:9443
@@ -69,28 +87,10 @@ auth: password
 password: ${PASSWORD}
 cert: false
 CSYAML
-    # Create systemd service
-    cat > /etc/systemd/system/code-server.service << CSSERVICE
-[Unit]
-Description=code-server
-After=network.target
-
-[Service]
-Type=simple
-User=$USER
-ExecStart=/usr/bin/code-server
-Restart=on-failure
-Environment=PATH=/usr/local/bin:/usr/bin:/bin
-
-[Install]
-WantedBy=multi-user.target
-CSSERVICE
-    systemctl daemon-reload
-    systemctl enable code-server
-    systemctl start code-server
-    echo "[cloud-dev] code-server installed — http://localhost:9443 inside desktop"
+    su - "$USER" -c "nohup /usr/local/bin/code-server --bind-addr 127.0.0.1:9443 > /config/.code-server.log 2>&1 &"
+    echo "[cloud-dev] code-server running on http://localhost:9443 (inside desktop)"
 else
-    echo "[cloud-dev] code-server already installed, skipping."
+    echo "[cloud-dev] code-server already running, skipping."
 fi
 
 # ---- npm global prefix → /config (env var, not .npmrc — avoids nvm conflict) ----

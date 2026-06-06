@@ -66,7 +66,19 @@ Then `ssh -p 3434 abc@<server-ip>` with that password.
 
 ### Permission denied even with correct password
 
-SSH might not have started. Check inside the container:
+First, check the init logs to see if the password was set:
+
+```bash
+docker logs dev-desktop 2>&1 | grep -i "ssh\|password\|chpasswd"
+```
+
+Look for:
+- `SSH password set for <user>` → password was set, issue is elsewhere
+- `WARNING: SUDO_PASSWORD is empty` → env var not reaching the container, check compose.yaml
+- `WARNING: SUDO_PASSWORD is still the placeholder` → you forgot to replace `CHANGE_ME_SUDO_PASSWORD`
+- `ERROR: chpasswd failed` → user might not exist yet, check `cat /etc/passwd`
+
+Also verify SSH is running:
 
 ```bash
 docker exec -it dev-desktop service ssh status
