@@ -6,20 +6,31 @@
 # Forces all package managers to install into /config (persistent)
 # ================================================================
 
-# ---- Detect actual user by UID (more reliable than CUSTOM_USER) ----
-# linuxserver may ignore CUSTOM_USER if /config already has data from a previous user.
-# We resolve by PUID to always set the password for the user that actually exists.
-DEFAULT_USER="abc"
-ACTUAL_USER=$(getent passwd "$PUID" 2>/dev/null | cut -d: -f1)
-if [ -n "$ACTUAL_USER" ] && [ "$ACTUAL_USER" != "root" ]; then
-    USER="$ACTUAL_USER"
-    echo "[cloud-dev] Detected user: '$USER' (UID=$PUID, CUSTOM_USER env=${CUSTOM_USER:-unset})"
-elif [ -n "$CUSTOM_USER" ]; then
+# ---- Detect the linuxserver container user ----
+# linuxserver creates either 'abc' (default) or the CUSTOM_USER name (first boot only).
+# We check for these by name — NOT by PUID — because installing docker.io inside the
+# container creates a 'dockremap' user that can steal the same UID and confuse getent.
+if [ -n "$CUSTOM_USER" ] && [ "$CUSTOM_USER" != "CHANGE_ME_USERNAME" ] && id "$CUSTOM_USER" &>/dev/null; then
     USER="$CUSTOM_USER"
-    echo "[cloud-dev] Using CUSTOM_USER: '$USER' (UID=$PUID, actual user not found)"
+    echo "[cloud-dev] Using CUSTOM_USER: '$USER'"
+elif id "abc" &>/dev/null; then
+    USER="abc"
+    if [ -n "$CUSTOM_USER" ] && [ "$CUSTOM_USER" != "CHANGE_ME_USERNAME" ]; then
+        echo "[cloud-dev] WARNING: CUSTOM_USER='$CUSTOM_USER' is set but user 'abc' still exists."
+        echo "[cloud-dev]   → linuxserver only renames the user on first boot with empty /config."
+        echo "[cloud-dev]   → To fix: stop container, delete /config contents, restart."
+    fi
+    echo "[cloud-dev] Using default user: '$USER'"
 else
-    USER="$DEFAULT_USER"
-    echo "[cloud-dev] Falling back to default: '$USER' (UID=$PUID)"
+    # Last resort: try PUID, but filter out known non-login system users
+    ACTUAL_USER=$(getent passwd "${PUID:-1000}" 2>/dev/null | cut -d: -f1)
+    if [ -n "$ACTUAL_USER" ] && [ "$ACTUAL_USER" != "root" ] && [ "$ACTUAL_USER" != "dockremap" ] && [ "$ACTUAL_USER" != "nobody" ]; then
+        USER="$ACTUAL_USER"
+        echo "[cloud-dev] Found user '$USER' by PUID=${PUID:-1000}"
+    else
+        USER="abc"
+        echo "[cloud-dev] Falling back to default user: '$USER'"
+    fi
 fi
 
 # ---- Helper: add line to file if not already present ----
