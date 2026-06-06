@@ -6,7 +6,7 @@ sidebar_position: 8
 
 All configurable environment variables live in `compose.yaml` under the **desktop** service. The init script writes them into the shared `/config` on every boot, so both containers pick them up automatically.
 
-Only `ANTHROPIC_AUTH_TOKEN` is mandatory. Everything else has sensible defaults.
+`ANTHROPIC_AUTH_TOKEN` is the only value you must provide — without it, Claude Code won't start. Every other variable falls back to the default shown in its table.
 
 ## How it works
 

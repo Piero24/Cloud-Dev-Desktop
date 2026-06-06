@@ -1,0 +1,223 @@
+---
+sidebar_position: 4
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Local Setup
+
+:::note[Optional]
+
+You don't need a local setup. Everything works server-side — browser-based desktop, VS Code, and SSH from any device. This page covers optional local editing with automatic sync to the server.
+
+:::
+
+## Step 1: Configure SSH
+
+Create or edit `~/.ssh/config` to add a shortcut for your server:
+
+```
+Host clouddev
+    HostName <server-ip>
+    Port 3434
+    User <your-username>
+```
+
+Test the connection:
+
+```bash
+ssh clouddev
+# → Enter your SUDO_PASSWORD
+```
+
+You can also connect directly without a config file:
+
+```bash
+ssh -p 3434 <your-username>@<server-ip>
+```
+
+:::tip[Skip repeated password prompts (optional)]
+
+If you connect frequently and don't want to re-enter your password each time, add SSH multiplexing above your Host entry in `~/.ssh/config`:
+
+```
+Host *
+    ControlMaster auto
+    ControlPath ~/.ssh/sockets/%r@%h-%p
+    ControlPersist 16h
+```
+
+Then create the sockets directory:
+
+```bash
+mkdir -p ~/.ssh/sockets
+chmod 700 ~/.ssh/sockets
+```
+
+After that, `ssh`, `scp`, and `rsync` reuse the same authenticated connection for 16 hours — no more password prompts.
+
+:::
+
+## Step 2: Global .gitignore (safety net)
+
+Prevents IDE config files from being committed to any Git repo:
+
+```bash
+touch ~/.gitignore_global
+
+cat >> ~/.gitignore_global << 'EOF'
+# VS Code
+.vscode/
+*.code-workspace
+
+# General IDE
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~
+EOF
+
+git config --global core.excludesfile ~/.gitignore_global
+```
+
+## Step 3: Install the Run on Save extension
+
+<Tabs>
+  <TabItem value="cli" label="Terminal" default>
+
+```bash
+code --install-extension emeraldwalk.runonsave
+```
+
+  </TabItem>
+  <TabItem value="ui" label="VS Code UI">
+
+Open VS Code → `Cmd+Shift+X` (macOS) / `Ctrl+Shift+X` (Windows/Linux) → search "Run on Save" by emeraldwalk → Install.
+
+  </TabItem>
+</Tabs>
+
+## Step 4: Create a workspace file
+
+This file maps your local project to the server. Keep it **outside** your project folder so it's never committed to Git.
+
+<Tabs>
+  <TabItem value="mac" label="macOS" default>
+
+Create `~/Documents/Workspaces/cloud-dev.code-workspace`:
+
+```json
+{
+    "folders": [
+        {
+            "name": "my-project",
+            "path": "/Users/<your-username>/Code/my-project"
+        }
+    ],
+    "settings": {
+        "files.autoSave": "onFocusChange",
+        "emeraldwalk.runonsave": {
+            "commands": [
+                {
+                    "match": ".*",
+                    "cmd": "rsync -avz --delete -e 'ssh -p 3434' /Users/<your-username>/Code/my-project/ <your-username>@<server-ip>:/projects/my-project/"
+                }
+            ]
+        }
+    }
+}
+```
+
+  </TabItem>
+  <TabItem value="linux" label="Linux">
+
+Create `~/Workspaces/cloud-dev.code-workspace`:
+
+```json
+{
+    "folders": [
+        {
+            "name": "my-project",
+            "path": "/home/<your-username>/Code/my-project"
+        }
+    ],
+    "settings": {
+        "files.autoSave": "onFocusChange",
+        "emeraldwalk.runonsave": {
+            "commands": [
+                {
+                    "match": ".*",
+                    "cmd": "rsync -avz --delete -e 'ssh -p 3434' /home/<your-username>/Code/my-project/ <your-username>@<server-ip>:/projects/my-project/"
+                }
+            ]
+        }
+    }
+}
+```
+
+  </TabItem>
+  <TabItem value="windows" label="Windows">
+
+Windows requires [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) for `rsync`. Once WSL is set up, open VS Code from inside WSL and create `~/Workspaces/cloud-dev.code-workspace`:
+
+```json
+{
+    "folders": [
+        {
+            "name": "my-project",
+            "path": "/home/<your-username>/Code/my-project"
+        }
+    ],
+    "settings": {
+        "files.autoSave": "onFocusChange",
+        "emeraldwalk.runonsave": {
+            "commands": [
+                {
+                    "match": ".*",
+                    "cmd": "rsync -avz --delete -e 'ssh -p 3434' /home/<your-username>/Code/my-project/ <your-username>@<server-ip>:/projects/my-project/"
+                }
+            ]
+        }
+    }
+}
+```
+
+  </TabItem>
+</Tabs>
+
+**Replace:**
+- `<your-username>` — your system username
+- `<server-ip>` — your server's IP address
+- `my-project` — your project folder name (both in the local path and on `/projects/`)
+- Adjust the local path (`/Users/.../Code/` or `/home/.../Code/`) to match where your project lives
+
+**How it works:**
+- You edit files in your local folder normally
+- When you click away from a file, VS Code autosaves → Run on Save fires `rsync`
+- `rsync` compares your entire local project against the server copy
+- Only changed files are transferred (incremental — not the whole project each time)
+- `--delete` means: if you deleted a file locally, it's deleted on the server too
+
+:::danger[Trailing slash matters]
+`rsync /path/my-project/` (with trailing slash) copies the **contents** of the directory. `rsync /path/my-project` (no trailing slash) copies the **directory itself**. The workspace config uses a trailing slash on the source. Get this wrong and you'll get `/projects/my-project/my-project/` on the server.
+:::
+
+### Why `onFocusChange` and not `afterDelay`
+
+- `afterDelay` saves every second you pause typing → hundreds of rsync calls per minute → server gets hammered
+- `onFocusChange` saves only when you click away from the editor (to terminal, another tab, browser) → one upload per editing session per file → clean
+
+### Why `rsync` instead of `scp`
+
+- `scp` only uploads files — deletions are lost. You'd have to manually clean up the server
+- `rsync --delete` gives you a true mirror: create, edit, delete locally → reflected on the server
+- `rsync` sends only changed blocks, not entire files — faster for large files
+- `rsync` scans the full project on every run — for typical projects this takes under a second
+
+## Step 5: Open the workspace
+
+Instead of `File → Open Folder`, use:
+- Double-click `cloud-dev.code-workspace` in your file manager
+- Or `File → Open Workspace from File...` in VS Code

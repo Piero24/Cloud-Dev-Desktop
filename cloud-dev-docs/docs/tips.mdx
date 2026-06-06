@@ -6,13 +6,13 @@ sidebar_position: 7
 
 ## Dev server port forwarding
 
-If you run a dev server inside the container (e.g., `npm run dev` on port 5173), forward it to your Mac:
+If you run a dev server inside the container (e.g., `npm run dev` on port 5173), forward it to your local machine:
 
 ```bash
 ssh -L 5173:localhost:5173 clouddev
 ```
 
-Then open `http://localhost:5173` in your Mac's browser. Repeat for each port you need. The forwarded port stays alive as long as the SSH tunnel is open.
+Then open `http://localhost:5173` in your browser. Repeat for each port you need. The forwarded port stays alive as long as the SSH session is open.
 
 ## Keeping Claude Code up to date
 
@@ -99,11 +99,14 @@ The rsync `cmd` hardcodes the project path. For multiple projects, create separa
 
 ### rsync timing
 
-If you edit a file and immediately run a command on the server that reads it, the server might still have the old version if you haven't clicked away yet. Click away from the editor first, or hit `Cmd+S` to force a save (Run on Save still fires on manual save).
+If you edit a file and immediately run a command on the server that reads it, the server might still have the old version if you haven't clicked away yet. Click away from the editor first, or save manually (`Ctrl+S` / `Cmd+S`) to force an rsync.
 
-### First connection of the day needs a terminal
+### rsync needs passwordless SSH
 
-You must run `ssh clouddev` from a terminal to establish the tunnel. VS Code's Run on Save will fail if the tunnel isn't open.
+The Run on Save rsync command runs in the background and cannot prompt for a password. You need one of:
+
+- **SSH keys** — set up key-based authentication so rsync connects without a password
+- **SSH multiplexing** — if you added the optional ControlMaster config, run `ssh clouddev` once from a terminal to open the shared connection; rsync then rides it without prompting
 
 ## See also
 

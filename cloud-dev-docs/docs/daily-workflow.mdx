@@ -7,10 +7,10 @@ sidebar_position: 5
 ## Starting a session
 
 ```bash
-# Open terminal, establish the persistent SSH tunnel
+# Open a terminal and connect via SSH
 ssh clouddev
 # → Enter SUDO_PASSWORD
-# → You're connected. You can close this terminal or leave it open.
+# → You're connected.
 ```
 
 ## Persistent sessions with tmux
@@ -63,26 +63,26 @@ Mid-task and realize you need more time? Run `tmux-keep` inside the tmux session
 
 :::
 
-## Working server-side (no Mac needed)
+## Working server-side (no local setup needed)
 
-You don't need a Mac. Everything runs on the server:
+You don't need a local machine. Everything runs on the server:
 
 - **VS Code**: browser at `https://code.yourdomain.com`
 - **Terminal**: SSH from anywhere, or use the terminal in the web desktop
 - **Claude Code / long tasks**: inside tmux — survives disconnects
 - **Files**: live at `/projects/` — visible in all apps
 
-## Working Mac-side (optional)
+## Working locally (optional)
 
-If you prefer editing files locally on your Mac with automatic sync to the server:
+If you prefer editing files locally with automatic sync to the server:
 
 1. Open VS Code → open your workspace file
 2. Edit files normally
-3. When you switch away from a file, VS Code autosaves → Run on Save fires `rsync --delete` → changed files upload through the SSH tunnel
+3. When you switch away from a file, VS Code autosaves → Run on Save fires `rsync --delete` → changed files upload through SSH
 4. If you delete a file locally, rsync removes it from the server too
 5. The server is now an exact mirror of your local folder
 
-This requires the SSH ControlMaster setup from [Mac-Side Setup](./mac-setup).
+See [Local Setup](./local-setup) for the full configuration.
 
 ## Accessing from elsewhere
 
@@ -95,15 +95,11 @@ This requires the SSH ControlMaster setup from [Mac-Side Setup](./mac-setup).
 
 ## Ending a session
 
-To close the SSH tunnel (ControlMaster):
-
-```bash
-ssh -O exit clouddev
-```
+To end an SSH session, type `exit` or press `Ctrl+D`.
 
 :::note
 
-The tunnel auto-closes after 16 hours of inactivity. If the server reboots, the tunnel dies — run `ssh clouddev` again.
+If the server reboots, your SSH session ends — just run `ssh clouddev` again.
 
 tmux sessions survive disconnects but not server reboots. Reattach with `tmux attach -t main` after reboot.
 

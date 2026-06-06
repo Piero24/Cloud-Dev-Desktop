@@ -10,7 +10,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Getting Started',
-      items: ['server-setup', 'mac-setup'],
+      items: ['server-setup', 'local-setup'],
     },
     {
       type: 'category',

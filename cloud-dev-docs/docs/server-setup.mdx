@@ -135,25 +135,3 @@ If all three work, the stack is running correctly.
 
   </TabItem>
 </Tabs>
-
----
-
-## Post-Setup
-
-These steps are not required for the stack to run — they cover API keys and monitoring.
-
-### API keys and Git
-
-All API and Git configuration is set through environment variables in the compose file. See the full reference:
-
-👉 **[Environment Variables Reference](./env-vars)**
-
-Only `ANTHROPIC_AUTH_TOKEN` is mandatory. Everything else has sensible defaults.
-
-### Beszel agent (optional)
-
-Sends CPU, RAM, disk, and Docker metrics to your existing [Beszel](https://beszel.dev) hub.
-
-**Get the agent key:** In your Beszel hub UI, click **Add system** and copy the SSH public key. Paste it as `CHANGE_ME_BESZEL_KEY` in the compose file.
-
-**Verify the listen port:** The agent listens on port `45002` (`LISTEN` env var). Make sure your Beszel hub is configured to connect to this server on port 45002.
