@@ -87,7 +87,7 @@ Full documentation at [`cloud-dev-docs/`](cloud-dev-docs/):
 
 - [Overview & Architecture](cloud-dev-docs/docs/index.mdx)
 - [Server Setup](cloud-dev-docs/docs/server-setup.mdx) — Docker or CasaOS (single page with tabs)
-- [Mac-Side Setup](cloud-dev-docs/docs/mac-setup.mdx) — optional local editing with auto-sync
+- [Local Setup](cloud-dev-docs/docs/local-setup.mdx) — optional local editing with auto-sync
 - [Daily Workflow](cloud-dev-docs/docs/daily-workflow.mdx) — tmux, persistent sessions, Termius
 - [Persistence & Kill Switch](cloud-dev-docs/docs/persistence.mdx)
 - [Environment Variables](cloud-dev-docs/docs/env-vars.mdx) — full reference
