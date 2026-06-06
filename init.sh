@@ -6,48 +6,11 @@
 # Forces all package managers to install into /config (persistent)
 # ================================================================
 
-# ---- Rename abc → CUSTOM_USER if linuxserver didn't ----
-# linuxserver only renames on first boot with empty /config.
-# If /config already existed (reinstall, CasaOS re-import, etc.) the rename
-# is silently skipped and the user stays 'abc'. We force it here.
-# NOTE: usermod -l fails when the user has running processes (desktop session),
-# so we edit /etc/passwd, /etc/shadow, and /etc/group directly.
-if [ -n "$CUSTOM_USER" ] && [ "$CUSTOM_USER" != "CHANGE_ME_USERNAME" ] && [ "$CUSTOM_USER" != "abc" ]; then
-    if grep -q "^abc:" /etc/passwd 2>/dev/null && ! grep -q "^${CUSTOM_USER}:" /etc/passwd 2>/dev/null; then
-        echo "[cloud-dev] Renaming user abc → $CUSTOM_USER..."
-        sed -i "s/^abc:/${CUSTOM_USER}:/" /etc/passwd
-        sed -i "s/^abc:/${CUSTOM_USER}:/" /etc/shadow 2>/dev/null || true
-        sed -i "s/^abc:/${CUSTOM_USER}:/" /etc/group 2>/dev/null || true
-        sed -i "s/^abc:/${CUSTOM_USER}:/" /etc/gshadow 2>/dev/null || true
-        # Verify the rename worked
-        if id "$CUSTOM_USER" &>/dev/null; then
-            echo "[cloud-dev] User renamed to '$CUSTOM_USER' (UID=$(id -u "$CUSTOM_USER"))"
-        else
-            echo "[cloud-dev] ERROR: rename failed — check /etc/passwd manually"
-        fi
-    fi
-fi
-
-# ---- Detect the linuxserver container user ----
-# After the rename above, CUSTOM_USER should exist. We check by name — NOT by
-# PUID — because installing docker.io creates a 'dockremap' user at the same UID.
-if [ -n "$CUSTOM_USER" ] && [ "$CUSTOM_USER" != "CHANGE_ME_USERNAME" ] && id "$CUSTOM_USER" &>/dev/null; then
-    USER="$CUSTOM_USER"
-    echo "[cloud-dev] Using CUSTOM_USER: '$USER'"
-elif id "abc" &>/dev/null; then
-    USER="abc"
-    echo "[cloud-dev] Using default user: '$USER'"
-else
-    # Last resort: try PUID, but filter out known non-login system users
-    ACTUAL_USER=$(getent passwd "${PUID:-1000}" 2>/dev/null | cut -d: -f1)
-    if [ -n "$ACTUAL_USER" ] && [ "$ACTUAL_USER" != "root" ] && [ "$ACTUAL_USER" != "dockremap" ] && [ "$ACTUAL_USER" != "nobody" ]; then
-        USER="$ACTUAL_USER"
-        echo "[cloud-dev] Found user '$USER' by PUID=${PUID:-1000}"
-    else
-        USER="abc"
-        echo "[cloud-dev] Falling back to default user: '$USER'"
-    fi
-fi
+# ---- User Setup ----
+# We use the default linuxserver user 'abc' for everything to ensure maximum
+# compatibility with the pre-configured desktop and services.
+USER="abc"
+echo "[cloud-dev] Running as default user: '$USER'"
 
 # ---- Helper: add line to file if not already present ----
 add_line() {
@@ -291,4 +254,4 @@ done
 # ---- Fix ownership ----
 chown -R "$USER:$USER" /config
 
-echo "[cloud-dev] Init complete. SSH is running as $USER. nvm, Node, Claude Code are ready."
+echo "[cloud-dev] Init complete. SSH is running as '$USER'. nvm, Node, Claude Code are ready."
