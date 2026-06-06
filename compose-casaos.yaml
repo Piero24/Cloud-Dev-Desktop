@@ -16,6 +16,19 @@ services:
       SUDO_PASSWORD: CHANGE_ME_SUDO_PASSWORD
       CUSTOM_RES_W: "1920"
       CUSTOM_RES_H: "1080"
+      # --- Claude Code ---
+      # Leave empty to use Anthropic directly. Set to a third-party URL if needed.
+      ANTHROPIC_BASE_URL: ""
+      ANTHROPIC_AUTH_TOKEN: CHANGE_ME_ANTHROPIC_KEY
+      ANTHROPIC_MODEL: claude-opus-4-8
+      ANTHROPIC_DEFAULT_OPUS_MODEL: claude-opus-4-8
+      ANTHROPIC_DEFAULT_SONNET_MODEL: claude-sonnet-4-6
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: claude-haiku-4-5
+      CLAUDE_CODE_SUBAGENT_MODEL: claude-haiku-4-5
+      CLAUDE_CODE_EFFORT_LEVEL: max
+      GIT_USER_NAME: CHANGE_ME_GIT_NAME
+      GIT_USER_EMAIL: CHANGE_ME_GIT_EMAIL
+      GITHUB_TOKEN: CHANGE_ME_GITHUB_TOKEN
     x-casaos:
       envs:
         - container: CUSTOM_USER
@@ -42,6 +55,12 @@ services:
         - container: CUSTOM_RES_H
           description:
             en_us: Desktop height in pixels (default 1080). Lower values make text/icons larger.
+        - container: ANTHROPIC_AUTH_TOKEN
+          description:
+            en_us: "Anthropic API key for Claude Code. Get one at console.anthropic.com. Shared to VS Code via /shared."
+        - container: GITHUB_TOKEN
+          description:
+            en_us: "GitHub fine-grained PAT (Settings → Developer settings → Personal access tokens). Shared to VS Code via /shared."
     ports:
       - target: 3000
         published: 3000
@@ -60,6 +79,9 @@ services:
         source: /DATA/AppData/cloud-dev/init.d
         target: /etc/cont-init.d
         read_only: true
+      - type: bind
+        source: /DATA/AppData/cloud-dev/shared
+        target: /shared
       - type: bind
         source: /var/run/docker.sock
         target: /var/run/docker.sock
@@ -93,11 +115,18 @@ services:
         protocol: tcp
     volumes:
       - type: bind
-        source: /DATA/AppData/cloud-dev/vscode-config
+        source: /DATA/AppData/cloud-dev/config
         target: /config
       - type: bind
         source: /DATA/AppData/cloud-dev/projects
         target: /projects
+      - type: bind
+        source: /DATA/AppData/cloud-dev/shared
+        target: /shared
+      - type: bind
+        source: /DATA/AppData/cloud-dev/init.d/99-vscode-env.sh
+        target: /etc/cont-init.d/99-vscode-env.sh
+        read_only: true
     networks:
       - npm-network
 

@@ -16,12 +16,27 @@ services:
       SUDO_PASSWORD: CHANGE_ME_SUDO_PASSWORD
       CUSTOM_RES_W: "1920"
       CUSTOM_RES_H: "1080"
+      # --- Claude Code ---
+      # Leave empty to use Anthropic directly. Set to https://api.deepseek.com/anthropic
+      # or https://openrouter.ai/api/anthropic to use a third-party provider.
+      ANTHROPIC_BASE_URL: ""
+      ANTHROPIC_AUTH_TOKEN: CHANGE_ME_ANTHROPIC_KEY
+      ANTHROPIC_MODEL: claude-opus-4-8
+      ANTHROPIC_DEFAULT_OPUS_MODEL: claude-opus-4-8
+      ANTHROPIC_DEFAULT_SONNET_MODEL: claude-sonnet-4-6
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: claude-haiku-4-5
+      CLAUDE_CODE_SUBAGENT_MODEL: claude-haiku-4-5
+      CLAUDE_CODE_EFFORT_LEVEL: max
+      GIT_USER_NAME: CHANGE_ME_GIT_NAME
+      GIT_USER_EMAIL: CHANGE_ME_GIT_EMAIL
+      GITHUB_TOKEN: CHANGE_ME_GITHUB_TOKEN
     ports:
       - "3000:3000"
       - "3434:22"
     volumes:
       - ./config:/config
       - ./projects:/projects
+      - ./shared:/shared
       - ./init.d:/etc/cont-init.d:ro
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
@@ -43,8 +58,10 @@ services:
     ports:
       - "9090:8443"
     volumes:
-      - ./vscode-config:/config
+      - ./config:/config
       - ./projects:/projects
+      - ./shared:/shared
+      - ./init.d/99-vscode-env.sh:/etc/cont-init.d/99-vscode-env.sh:ro
     networks:
       - npm-network
 
