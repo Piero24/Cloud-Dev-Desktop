@@ -50,7 +50,7 @@ echo ""
 
 # ---- Create directories ----
 echo "[1/3] Creating directories..."
-mkdir -p "$BASE_PATH"/{config,projects,init.d,shared}
+mkdir -p "$BASE_PATH"/{projects,init.d,shared}
 echo "      ✓ $BASE_PATH/config"
 echo "      ✓ $BASE_PATH/projects"
 echo "      ✓ $BASE_PATH/init.d"

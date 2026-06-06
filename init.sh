@@ -6,20 +6,36 @@
 # Forces all package managers to install into /config (persistent)
 # ================================================================
 
+# ---- Rename abc → CUSTOM_USER if linuxserver didn't ----
+# linuxserver only renames on first boot with empty /config.
+# If /config already existed (reinstall, CasaOS re-import, etc.) the rename
+# is silently skipped and the user stays 'abc'. We force it here.
+# NOTE: usermod -l fails when the user has running processes (desktop session),
+# so we edit /etc/passwd, /etc/shadow, and /etc/group directly.
+if [ -n "$CUSTOM_USER" ] && [ "$CUSTOM_USER" != "CHANGE_ME_USERNAME" ] && [ "$CUSTOM_USER" != "abc" ]; then
+    if grep -q "^abc:" /etc/passwd 2>/dev/null && ! grep -q "^${CUSTOM_USER}:" /etc/passwd 2>/dev/null; then
+        echo "[cloud-dev] Renaming user abc → $CUSTOM_USER..."
+        sed -i "s/^abc:/${CUSTOM_USER}:/" /etc/passwd
+        sed -i "s/^abc:/${CUSTOM_USER}:/" /etc/shadow 2>/dev/null || true
+        sed -i "s/^abc:/${CUSTOM_USER}:/" /etc/group 2>/dev/null || true
+        sed -i "s/^abc:/${CUSTOM_USER}:/" /etc/gshadow 2>/dev/null || true
+        # Verify the rename worked
+        if id "$CUSTOM_USER" &>/dev/null; then
+            echo "[cloud-dev] User renamed to '$CUSTOM_USER' (UID=$(id -u "$CUSTOM_USER"))"
+        else
+            echo "[cloud-dev] ERROR: rename failed — check /etc/passwd manually"
+        fi
+    fi
+fi
+
 # ---- Detect the linuxserver container user ----
-# linuxserver creates either 'abc' (default) or the CUSTOM_USER name (first boot only).
-# We check for these by name — NOT by PUID — because installing docker.io inside the
-# container creates a 'dockremap' user that can steal the same UID and confuse getent.
+# After the rename above, CUSTOM_USER should exist. We check by name — NOT by
+# PUID — because installing docker.io creates a 'dockremap' user at the same UID.
 if [ -n "$CUSTOM_USER" ] && [ "$CUSTOM_USER" != "CHANGE_ME_USERNAME" ] && id "$CUSTOM_USER" &>/dev/null; then
     USER="$CUSTOM_USER"
     echo "[cloud-dev] Using CUSTOM_USER: '$USER'"
 elif id "abc" &>/dev/null; then
     USER="abc"
-    if [ -n "$CUSTOM_USER" ] && [ "$CUSTOM_USER" != "CHANGE_ME_USERNAME" ]; then
-        echo "[cloud-dev] WARNING: CUSTOM_USER='$CUSTOM_USER' is set but user 'abc' still exists."
-        echo "[cloud-dev]   → linuxserver only renames the user on first boot with empty /config."
-        echo "[cloud-dev]   → To fix: stop container, delete /config contents, restart."
-    fi
     echo "[cloud-dev] Using default user: '$USER'"
 else
     # Last resort: try PUID, but filter out known non-login system users
