@@ -179,7 +179,6 @@ x-casaos:
     en_us: >
       Cloud Dev Stack — Ubuntu XFCE desktop (browser), VS Code (browser),
       and SSH access all sharing the same /projects folder.
-      Protected by Nginx Proxy Manager with SSL.
       Includes nvm, Node LTS, Claude Code, and build tools pre-installed.
   tagline:
     en_us: >
