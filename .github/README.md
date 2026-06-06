@@ -25,7 +25,6 @@ flowchart LR
     Internet((Internet))
 
     subgraph Host["Docker Host"]
-        NPM["Nginx Proxy Manager\n(SSL)"]
         subgraph Volumes["Shared"]
             Config["/config\n(home: shell, git, nvm, packages)"]
             Projects["/projects\n(your code)"]
@@ -34,9 +33,8 @@ flowchart LR
         Code["dev-vscode:8443\nVS Code"]
     end
 
-    Internet --> NPM
-    NPM -->|"desktop.yourdomain.com"| Desktop
-    NPM -->|"code.yourdomain.com"| Code
+    Internet --> Desktop
+    Internet --> Code
     Desktop --> Config
     Desktop --> Projects
     Code --> Config
@@ -58,9 +56,6 @@ The installer asks where to store data, downloads everything, then prints next s
 ```bash
 git clone https://github.com/Piero24/Cloud-Dev-Desktop.git
 cd Cloud-Dev-Desktop
-
-# Create the NPM network (if not already present)
-docker network create npm-network
 
 # Edit values in compose.yaml, then:
 docker compose up -d
@@ -101,8 +96,6 @@ Full documentation at [`cloud-dev-docs/`](cloud-dev-docs/):
 ## Requirements
 
 - Docker + Docker Compose
-- Nginx Proxy Manager with an `npm-network` (or adjust network config)
-- A domain name with DNS pointing to your server (for SSL via NPM)
 - Optional: [Beszel hub](https://github.com/henrygd/beszel) running elsewhere (for the agent)
 
 ## License

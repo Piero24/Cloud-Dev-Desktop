@@ -57,15 +57,7 @@ Desktop and vscode mount the same `./config` volume as `/config` — they share 
 
 :::
 
-## Step 4: Create the NPM network
-
-If you already have Nginx Proxy Manager running with a custom network, skip this:
-
-```bash
-docker network create npm-network
-```
-
-## Step 5: Start the stack
+## Step 4: Start the stack
 
 ```bash
 docker compose up -d
@@ -74,7 +66,7 @@ docker ps | grep dev-
 
 You should see three containers: `dev-desktop`, `dev-vscode`, and `dev-beszel-agent`.
 
-## Step 6: Test direct access
+## Step 5: Test direct access
 
 | Test | URL / Command |
 |------|---------------|
@@ -148,7 +140,7 @@ If all three work, the stack is running correctly.
 
 ## Post-Setup
 
-These steps are not required for the stack to run — they wire up external access, API keys, and monitoring.
+These steps are not required for the stack to run — they cover API keys and monitoring.
 
 ### API keys and Git
 
@@ -157,31 +149,6 @@ All API and Git configuration is set through environment variables in the compos
 👉 **[Environment Variables Reference](./env-vars)**
 
 Only `ANTHROPIC_AUTH_TOKEN` is mandatory. Everything else has sensible defaults.
-
-### Wire up Nginx Proxy Manager
-
-In your existing NPM dashboard (port 81), add two Proxy Hosts:
-
-| Domain | Forward Hostname | Forward Port | WebSocket | SSL |
-|--------|-----------------|--------------|-----------|-----|
-| `desktop.yourdomain.com` | `dev-desktop` | `3000` | **ON** | Let's Encrypt |
-| `code.yourdomain.com` | `dev-vscode` | `8443` | **ON** | Let's Encrypt |
-
-:::warning[WebSocket support is mandatory]
-
-Both KasmVNC (desktop) and code-server rely on WebSocket connections. Without the **WebSocket Support** toggle enabled in NPM, you'll see:
-- Desktop: login page loads, then "WebSocket disconnected. Attempting to reconnect..." loops forever
-- Code-server: connection resets or "This application requires a secure connection" errors
-
-:::
-
-No Advanced tab config needed — just SSL + WebSocket. Each app has its own password (the `PASSWORD` you set earlier).
-
-:::tip
-
-`dev-desktop` and `dev-vscode` are Docker container names. Because they share `npm-network` with NPM, Docker's internal DNS resolves these names automatically.
-
-:::
 
 ### Beszel agent (optional)
 

@@ -103,7 +103,6 @@ const config: Config = {
             {label: 'linuxserver/webtop', href: 'https://docs.linuxserver.io/images/docker-webtop/'},
             {label: 'linuxserver/code-server', href: 'https://docs.linuxserver.io/images/docker-code-server/'},
             {label: 'CasaOS', href: 'https://casaos.io/'},
-            {label: 'Nginx Proxy Manager', href: 'https://nginxproxymanager.com/'},
           ],
         },
         {

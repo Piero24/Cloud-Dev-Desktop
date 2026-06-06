@@ -22,7 +22,6 @@ flowchart TB
     Internet((Internet))
 
     subgraph Host["Docker Host"]
-        NPM["Nginx Proxy Manager\n(SSL termination)"]
         subgraph Shared["Shared Volumes"]
             Config["/config\n(home: shell, git, nvm, packages)"]
             Projects["/projects\n(your code)"]
@@ -37,9 +36,8 @@ flowchart TB
         Phone["iPhone / Termius"]
     end
 
-    Internet --> NPM
-    NPM -->|"desktop.yourdomain.com"| Desktop
-    NPM -->|"code.yourdomain.com"| Code
+    Internet --> Desktop
+    Internet --> Code
     Desktop --> Config
     Desktop --> Projects
     Code --> Config
