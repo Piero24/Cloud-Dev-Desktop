@@ -50,18 +50,22 @@ echo ""
 
 # ---- Create directories ----
 echo "[1/3] Creating directories..."
-mkdir -p "$BASE_PATH"/{config,projects,vscode-config,init.d}
+mkdir -p "$BASE_PATH"/{config,projects,init.d,shared}
 echo "      ✓ $BASE_PATH/config"
 echo "      ✓ $BASE_PATH/projects"
-echo "      ✓ $BASE_PATH/vscode-config"
 echo "      ✓ $BASE_PATH/init.d"
+echo "      ✓ $BASE_PATH/shared"
 
-# ---- Download init script ----
+# ---- Download init scripts ----
 echo ""
-echo "[2/3] Downloading container init script..."
+echo "[2/3] Downloading container init scripts..."
 curl -fsSL "$GITHUB_RAW/init.sh" -o "$BASE_PATH/init.d/99-ssh.sh"
 chmod +x "$BASE_PATH/init.d/99-ssh.sh"
 echo "      ✓ init.sh → $BASE_PATH/init.d/99-ssh.sh"
+
+curl -fsSL "$GITHUB_RAW/init.d/99-vscode-env.sh" -o "$BASE_PATH/init.d/99-vscode-env.sh"
+chmod +x "$BASE_PATH/init.d/99-vscode-env.sh"
+echo "      ✓ 99-vscode-env.sh → $BASE_PATH/init.d/99-vscode-env.sh"
 
 # ---- Download compose-casaos.yaml ----
 echo ""
@@ -80,17 +84,18 @@ echo ""
 echo "  1. Edit the values in the compose file:"
 echo "     nano $BASE_PATH/compose-casaos.yaml"
 echo ""
-echo "     Replace:"
-echo "       CHANGE_ME_USERNAME      → your system username"
-echo "       CHANGE_ME_WEB_PASSWORD  → your login password"
-echo "       CHANGE_ME_SUDO_PASSWORD → your sudo/SSH password"
+echo "     Replace (all under the desktop service):"
+echo "       CHANGE_ME_USERNAME       → your system username"
+echo "       CHANGE_ME_WEB_PASSWORD   → your login password"
+echo "       CHANGE_ME_SUDO_PASSWORD  → your sudo/SSH password"
+echo "       CHANGE_ME_ANTHROPIC_KEY  → your Anthropic API key"
+echo "       CHANGE_ME_GIT_NAME       → your Git name"
+echo "       CHANGE_ME_GIT_EMAIL      → your Git email"
+echo "       CHANGE_ME_GITHUB_TOKEN   → your GitHub fine-grained PAT"
 echo ""
 echo "  2. Import into CasaOS:"
 echo "     App Store → Custom Install → Import"
 echo "     Paste the content of $BASE_PATH/compose-casaos.yaml"
 echo ""
-echo "  3. After deploy, edit the DeepSeek API key:"
-echo "     nano $BASE_PATH/config/.zshrc"
-echo ""
-echo "  4. Configure Nginx Proxy Manager (see docs)"
+echo "  3. Configure Nginx Proxy Manager (see docs)"
 echo ""
