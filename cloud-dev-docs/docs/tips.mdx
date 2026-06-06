@@ -20,7 +20,7 @@ Claude Code updates frequently. To update inside the container:
 
 ```bash
 docker exec -it dev-desktop bash
-su - <your-username>
+su - abc
 source ~/.nvm/nvm.sh
 npm update -g @anthropic-ai/claude-code
 ```
@@ -46,23 +46,11 @@ You may also need to match the host's docker GID inside the container.
 SSH uses `SUDO_PASSWORD`, not `PASSWORD`. The web desktop uses `PASSWORD` for KasmVNC login — these are two different variables in the compose file.
 
 ```bash
-ssh -p 3434 <username>@<server-ip>
+ssh -p 3434 abc@<server-ip>
 # Password: whatever you set as SUDO_PASSWORD
 ```
 
-### CUSTOM_USER changed but still see `abc`
 
-The linuxserver base image only creates the user on **first container boot**. If you launched the container with `CUSTOM_USER: CHANGE_ME_USERNAME` (the placeholder), it created `abc`. Changing `CUSTOM_USER` later in the compose and restarting won't rename the existing user — the home directory in `/config` is already baked.
-
-**Quick fix** — set the password for the existing user:
-
-```bash
-docker exec -it -u root dev-desktop bash -c "echo 'abc:<your-sudo-password>' | chpasswd"
-```
-
-Then `ssh -p 3434 abc@<server-ip>` with that password.
-
-**Clean fix** — delete `/config` and recreate so a fresh user is created with your `CUSTOM_USER`. This also deletes installed packages (nvm, Node, Claude Code), so re-run the init.
 
 ### Permission denied even with correct password
 
@@ -73,7 +61,7 @@ docker logs dev-desktop 2>&1 | grep -i "ssh\|password\|chpasswd"
 ```
 
 Look for:
-- `SSH password set for <user>` → password was set, issue is elsewhere
+- `SSH password set for abc` → password was set, issue is elsewhere
 - `WARNING: SUDO_PASSWORD is empty` → env var not reaching the container, check compose.yaml
 - `WARNING: SUDO_PASSWORD is still the placeholder` → you forgot to replace `CHANGE_ME_SUDO_PASSWORD`
 - `ERROR: chpasswd failed` → user might not exist yet, check `cat /etc/passwd`
