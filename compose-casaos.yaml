@@ -11,7 +11,6 @@ services:
       PUID: "1000"
       PGID: "1000"
       TZ: Europe/Rome
-      CUSTOM_USER: CHANGE_ME_USERNAME
       PASSWORD: CHANGE_ME_WEB_PASSWORD
       SUDO_PASSWORD: CHANGE_ME_SUDO_PASSWORD
       CUSTOM_RES_W: "1920"
@@ -31,9 +30,6 @@ services:
       GITHUB_TOKEN: CHANGE_ME_GITHUB_TOKEN
     x-casaos:
       envs:
-        - container: CUSTOM_USER
-          description:
-            en_us: System username inside the container (default abc). Used for SSH, file ownership, and desktop session.
         - container: PUID
           description:
             en_us: User ID for file permissions. Run 'id [USER]' on the host to get this.
