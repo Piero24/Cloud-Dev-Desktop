@@ -2,95 +2,102 @@
 sidebar_position: 1
 ---
 
-# Overview & Architecture
+# Cloud Dev Stack
 
-Cloud Dev Stack is a two-container Docker Compose stack for CasaOS that gives you a complete cloud development environment.
+A complete, persistent cloud development environment — one shared workspace, two browser-based views.
 
 ## What You Get
 
-- **Browser-accessible Ubuntu desktop** — full XFCE desktop from any device
-- **Browser-accessible VS Code** — on a separate port
-- **SSH access** — so your Mac can edit files directly on the server
-- **Full bidirectional sync** — edit locally, changes push to the server automatically via rsync (including deletions)
-- **Persistent environment** — all user-installed packages, tools, and configs survive container rebuilds
-
-Each app has its own login password. Access is routed through Nginx Proxy Manager with Let's Encrypt SSL.
+- **Ubuntu desktop in your browser** — full XFCE desktop from any device
+- **VS Code in your browser** — same files, same tools, same environment
+- **SSH access** — connect from Mac, PC, or phone (iPhone/Termius with persistent tmux)
+- **Everything shared** — both containers mount the same `/config` (home) and `/projects`. Install a package, set a git config, or save a file — it's visible everywhere instantly
 
 ## Architecture
+
+Two containers, one environment. They share `/config` (home directory) and `/projects` — the vscode container is a browser-based editor view into the same workspace:
 
 ```mermaid
 flowchart TB
     Internet((Internet))
 
-    subgraph Server["Docker Host"]
+    subgraph Host["Docker Host"]
         NPM["Nginx Proxy Manager\n(SSL termination)"]
-        Desktop["dev-desktop:3000\nUbuntu XFCE"]
-        Code["dev-vscode:8443\nVS Code"]
+        subgraph Shared["Shared Volumes"]
+            Config["/config\n(home: shell, git, nvm, packages)"]
+            Projects["/projects\n(your code)"]
+        end
+        Desktop["dev-desktop:3000\nUbuntu XFCE + SSH :3434"]
+        Code["dev-vscode:8443\nVS Code Server"]
         Beszel["dev-beszel-agent\n(host network)"]
-        SSH["SSH daemon :22\n(published :3434)"]
-        Projects["/projects\n(shared bind mount)"]
     end
 
     subgraph Clients["Clients"]
         Browser["Any Browser"]
-        Mac["Mac Terminal"]
         Phone["iPhone / Termius"]
     end
 
     Internet --> NPM
     NPM -->|"desktop.yourdomain.com"| Desktop
     NPM -->|"code.yourdomain.com"| Code
+    Desktop --> Config
     Desktop --> Projects
+    Code --> Config
     Code --> Projects
-    Mac -->|"ssh -p 3434"| SSH
-    Phone -->|"ssh -p 3434 (TMUX_AUTO=1)"| SSH
-    SSH --> Desktop
+    Phone -->|"ssh -p 3434"| Desktop
     Browser --> Internet
     Phone --> Internet
-    Desktop -.->|"system metrics"| Beszel
-    Beszel -.->|"push to hub"| Internet
+    Desktop -.->|"metrics"| Beszel
+    Beszel -.->|"push"| Internet
 ```
 
-## Shared Storage
+## How it works
 
-Both containers mount the same host directory:
-
-```mermaid
-flowchart LR
-    Host["/DATA/AppData/cloud-dev/projects\n(host directory)"]
-    subgraph Desktop["dev-desktop"]
-        DProjects["/projects"]
-    end
-    subgraph VSCode["dev-vscode"]
-        VProjects["/projects"]
-    end
-
-    Host --> DProjects
-    Host --> VProjects
+```
+compose.yaml          init.sh              /config (shared home)
+(desktop service)  →  on boot  →          ├── .bashrc / .zshrc
+                                          ├── .gitconfig
+                                          ├── .nvm (Node LTS)
+                                          ├── .npm-global (Claude Code)
+                                          └── .local/share/code-server
+                                                     ↓
+                                          vscode container mounts
+                                          same /config — same everything
 ```
 
-A file saved via SSH, web VS Code, or the Ubuntu desktop is instantly visible everywhere — it's the same bytes on disk.
+Edit `compose.yaml` → recreate desktop → both containers see the change.
 
-## How Sync Works
+## Shared environment
 
-1. You edit files on your Mac's local hard drive
-2. VS Code autosaves on focus change (when you click away from a file)
-3. The "Run on Save" extension fires `rsync --delete` through the already-open SSH tunnel
-4. rsync compares local vs server — only changed files transfer
-5. If you deleted a file locally, it's deleted on the server too (`--delete`)
-6. No password prompt, no 2FA — rsync rides the SSH ControlMaster socket
+| What | Where | Shared? |
+|------|-------|---------|
+| Shell config (PATH, aliases) | `/config/.bashrc` | ✅ Both containers |
+| Git identity + GitHub token | `/config/.gitconfig` | ✅ Both containers |
+| nvm + Node LTS | `/config/.nvm` | ✅ Both containers |
+| Claude Code | `/config/.npm-global` | ✅ Both containers |
+| VS Code extensions | `/shared/code-server/extensions` | ✅ Both containers |
+| Your projects | `/projects` | ✅ Both containers |
+| Persistent sessions (tmux) | Desktop only | Desktop (via SSH) |
 
-## Tools Included
+## Tools pre-installed
 
 | Tool | Installed by | Persists? |
 |------|-------------|-----------|
 | nvm + Node LTS | Init script | ✅ `/config/.nvm` |
 | Claude Code | Init script (npm global) | ✅ `/config/.npm-global` |
+| code-server | Init script | ✅ system install |
 | build-essential (gcc, make) | Init script (apt) | ❌ Reinstalled each boot |
 | python3 + pip | Init script (apt) | ❌ Reinstalled each boot |
 | Docker CLI | Init script (apt) | ❌ Reinstalled each boot |
-| Git, curl, zsh | Init script (apt) | ❌ Reinstalled each boot |
+| Git, curl, zsh, tmux, nano | Init script (apt) | ❌ Reinstalled each boot |
 
 :::tip[The golden rule]
-If it lands in `/config`, it survives forever. If it needs `sudo` or `apt`, add it to the init script.
+If it lands in `/config`, it persists forever and appears in both containers. If it needs `sudo` or `apt`, add it to the init script.
 :::
+
+## Next steps
+
+- **[Server Setup](./server-setup)** — get the stack running (Docker or CasaOS)
+- **[Mac-Side Setup](./mac-setup)** — optional: edit locally, auto-sync to server
+- **[Daily Workflow](./daily-workflow)** — tmux, persistent sessions, Termius
+- **[Environment Variables](./env-vars)** — full reference for all configurable vars

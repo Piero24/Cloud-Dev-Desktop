@@ -2,13 +2,26 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
 const sidebars: SidebarsConfig = {
   docsSidebar: [
-    'index',
-    'server-setup',
-    'server-setup-casaos',
-    'mac-setup',
-    'daily-workflow',
-    'persistence',
-    'tips',
+    {
+      type: 'category',
+      label: 'Welcome',
+      items: ['index'],
+    },
+    {
+      type: 'category',
+      label: 'Getting Started',
+      items: ['server-setup', 'mac-setup'],
+    },
+    {
+      type: 'category',
+      label: 'Daily Use',
+      items: ['daily-workflow', 'persistence'],
+    },
+    {
+      type: 'category',
+      label: 'Reference',
+      items: ['tips', 'env-vars'],
+    },
   ],
 };
 

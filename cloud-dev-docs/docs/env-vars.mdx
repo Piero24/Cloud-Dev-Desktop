@@ -1,0 +1,111 @@
+---
+sidebar_position: 8
+---
+
+# Environment Variables
+
+All configurable environment variables live in `compose.yaml` under the **desktop** service. The init script writes them into the shared `/config` on every boot, so both containers pick them up automatically.
+
+Only `ANTHROPIC_AUTH_TOKEN` is mandatory. Everything else has sensible defaults.
+
+## How it works
+
+```
+compose.yaml          init.sh              /config/.bashrc
+(desktop service)  →  writes vars  →      /config/.zshrc
+                                          /shared/.cloud-dev-env
+                                                   ↓
+                                          vscode container reads
+                                          same /config (shared home)
+```
+
+Edit `compose.yaml`, recreate the desktop container, done. Both containers see the changes.
+
+## Claude Code / API
+
+| Env var | Default | What it does |
+|---------|---------|---------------|
+| `ANTHROPIC_BASE_URL` | *(empty)* | Leave empty for Anthropic. Set to a third-party URL ([DeepSeek](https://platform.deepseek.com), [OpenRouter](https://openrouter.ai), etc.) to use a different provider |
+| `ANTHROPIC_AUTH_TOKEN` | *(required)* | Your API key. Get one at [console.anthropic.com](https://console.anthropic.com) |
+| `ANTHROPIC_MODEL` | `claude-opus-4-8` | Default model Claude Code uses for all tasks |
+| `ANTHROPIC_DEFAULT_OPUS_MODEL` | `claude-opus-4-8` | Model used when Opus tier is selected |
+| `ANTHROPIC_DEFAULT_SONNET_MODEL` | `claude-sonnet-4-6` | Model used when Sonnet tier is selected |
+| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | `claude-haiku-4-5` | Model for Haiku tier (lighter tasks, subagents) |
+| `CLAUDE_CODE_SUBAGENT_MODEL` | `claude-haiku-4-5` | Model for background agents spawned by Claude Code |
+| `CLAUDE_CODE_EFFORT_LEVEL` | `max` | Reasoning depth: `low`, `medium`, `high`, or `max` |
+
+### Using a different provider
+
+If `ANTHROPIC_BASE_URL` is left empty, Claude Code connects directly to Anthropic's API. To use a third-party provider, set the URL and adjust model names.
+
+**DeepSeek example:**
+
+```yaml
+ANTHROPIC_BASE_URL: https://api.deepseek.com/anthropic
+ANTHROPIC_AUTH_TOKEN: sk-...       # your DeepSeek key
+ANTHROPIC_MODEL: deepseek-v4-pro[1m]
+ANTHROPIC_DEFAULT_HAIKU_MODEL: deepseek-v4-flash
+CLAUDE_CODE_SUBAGENT_MODEL: deepseek-v4-flash
+```
+
+**OpenRouter example:**
+
+```yaml
+ANTHROPIC_BASE_URL: https://openrouter.ai/api/anthropic
+ANTHROPIC_AUTH_TOKEN: sk-or-v1-... # your OpenRouter key
+ANTHROPIC_MODEL: anthropic/claude-opus-4-8
+```
+
+### How to apply changes
+
+Edit `compose.yaml` → recreate the desktop container:
+
+```bash
+docker compose up -d --force-recreate desktop
+```
+
+Or, for a quick test without recreating:
+
+```bash
+nano ~/.zshrc
+source ~/.zshrc
+```
+
+## Git / GitHub
+
+| Env var | What it does |
+|---------|---------------|
+| `GIT_USER_NAME` | Your name for commits (`git config user.name`) |
+| `GIT_USER_EMAIL` | Your email for commits (`git config user.email`) |
+| `GITHUB_TOKEN` | GitHub [fine-grained PAT](https://github.com/settings/tokens?type=beta) — used for all `git clone` / `push` / `pull` |
+
+### Creating a GitHub token
+
+Go to [github.com/settings/tokens?type=beta](https://github.com/settings/tokens?type=beta):
+
+1. **Repository access**: "Only select repositories" — pick which ones
+2. **Permissions**: Contents (read/write as needed), Metadata (read, auto-selected)
+3. Copy the `github_pat_...` token into `GITHUB_TOKEN`
+
+The token can be revoked or scoped anytime. No account password stored — if the container is compromised, you only lose access to the repos you explicitly granted.
+
+After setting these and recreating the container, `git clone`, `git push`, and `git pull` all use the token automatically.
+
+## Container settings
+
+| Env var | Default | What it does |
+|---------|---------|---------------|
+| `CUSTOM_USER` | `abc` | System username. Used for SSH, file ownership, and desktop session |
+| `PASSWORD` | *(required)* | Login password for KasmVNC (desktop) and code-server (both containers) |
+| `SUDO_PASSWORD` | *(required)* | Sudo password inside the container. Also used for SSH login |
+| `CUSTOM_RES_W` | `1920` | Desktop width in pixels. Lower = bigger text/icons |
+| `CUSTOM_RES_H` | `1080` | Desktop height in pixels |
+| `TZ` | `Europe/Rome` | Timezone for both containers |
+
+## Beszel agent
+
+| Env var | Default | What it does |
+|---------|---------|---------------|
+| `LISTEN` | `45002` | Port the agent listens on |
+| `KEY` | *(required)* | SSH public key from your Beszel hub (copy from "Add system" dialog) |
+| `EXTRA_FILESYSTEMS` | `/dev/sda1` | Additional filesystems to monitor |

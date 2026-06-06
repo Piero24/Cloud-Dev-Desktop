@@ -63,23 +63,18 @@ const config: Config = {
       },
       items: [
         {
-          to: '/',
+          to: '/docs/',
           label: 'Home',
           position: 'left',
         },
         {
           to: '/docs/server-setup',
-          label: 'Server Setup',
+          label: 'Getting Started',
           position: 'left',
         },
         {
-          to: '/docs/mac-setup',
-          label: 'Mac Setup',
-          position: 'left',
-        },
-        {
-          to: '/docs/tips',
-          label: 'Tips',
+          to: '/docs/env-vars',
+          label: 'Reference',
           position: 'left',
         },
         {
@@ -97,9 +92,8 @@ const config: Config = {
           items: [
             {label: 'Overview & Architecture', to: '/docs/'},
             {label: 'Server Setup', to: '/docs/server-setup'},
-            {label: 'Mac Setup', to: '/docs/mac-setup'},
             {label: 'Daily Workflow', to: '/docs/daily-workflow'},
-            {label: 'Persistence & Kill Switch', to: '/docs/persistence'},
+            {label: 'Environment Variables', to: '/docs/env-vars'},
             {label: 'Tips & Troubleshooting', to: '/docs/tips'},
           ],
         },
@@ -109,7 +103,7 @@ const config: Config = {
             {label: 'linuxserver/webtop', href: 'https://docs.linuxserver.io/images/docker-webtop/'},
             {label: 'linuxserver/code-server', href: 'https://docs.linuxserver.io/images/docker-code-server/'},
             {label: 'CasaOS', href: 'https://casaos.io/'},
-            {label: 'Cloudflare Zero Trust', href: 'https://www.cloudflare.com/products/zero-trust/'},
+            {label: 'Nginx Proxy Manager', href: 'https://nginxproxymanager.com/'},
           ],
         },
         {
