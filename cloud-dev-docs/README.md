@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/cloud-dev-docs/static/img/logo.svg" alt="Cloud Dev Desktop" width="100" />
+</p>
+
 # Cloud Dev Stack Docs
 
 Documentation site for Cloud Dev Stack — a containerized cloud development environment for CasaOS.

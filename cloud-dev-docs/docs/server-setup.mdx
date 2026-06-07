@@ -42,7 +42,6 @@ nano compose.yaml
 ```
 
 Replace in the **desktop** service:
-- `CHANGE_ME_USERNAME` — your system username. Used for SSH and file ownership
 - `CHANGE_ME_WEB_PASSWORD` — login password for KasmVNC (desktop) and code-server
 - `CHANGE_ME_SUDO_PASSWORD` — sudo password, also used for SSH login
 - `CHANGE_ME_ANTHROPIC_KEY` — your [Anthropic API key](https://console.anthropic.com)
@@ -50,6 +49,12 @@ Replace in the **desktop** service:
 - `CHANGE_ME_GITHUB_TOKEN` — GitHub [fine-grained PAT](https://github.com/settings/tokens?type=beta)
 - `CUSTOM_RES_W` / `CUSTOM_RES_H` — desktop resolution (default 1920×1080)
 - `TZ` — your timezone
+
+:::warning[Username is always abc]
+
+The system username is locked to `abc` — the linuxserver base image uses it for the pre-configured desktop and services. Changing it would break KasmVNC, SSH, and file permissions. SSH login: `ssh -p 3434 abc@<server-ip>`.
+
+:::
 
 :::tip[Both containers share the same home]
 
@@ -96,7 +101,6 @@ nano /DATA/AppData/cloud-dev/compose-casaos.yaml
 ```
 
 Replace in the **desktop** service:
-- `CHANGE_ME_USERNAME` — your system username. Used for SSH and file ownership
 - `CHANGE_ME_WEB_PASSWORD` — login password for KasmVNC (desktop) and code-server
 - `CHANGE_ME_SUDO_PASSWORD` — sudo password, also used for SSH login
 - `CHANGE_ME_ANTHROPIC_KEY` — your [Anthropic API key](https://console.anthropic.com)
@@ -104,6 +108,12 @@ Replace in the **desktop** service:
 - `CHANGE_ME_GITHUB_TOKEN` — GitHub [fine-grained PAT](https://github.com/settings/tokens?type=beta)
 - `CUSTOM_RES_W` / `CUSTOM_RES_H` — desktop resolution (default 1920×1080)
 - `TZ` — your timezone
+
+:::warning[Username is always abc]
+
+The system username is locked to `abc` — the linuxserver base image uses it for the pre-configured desktop and services. Changing it would break KasmVNC, SSH, and file permissions. SSH login: `ssh -p 3434 abc@<server-ip>`.
+
+:::
 
 :::tip[Both containers share the same home]
 

@@ -21,7 +21,7 @@ Create or edit `~/.ssh/config` to add a shortcut for your server:
 Host clouddev
     HostName <server-ip>
     Port 3434
-    User <your-username>
+    User abc
 ```
 
 Test the connection:
@@ -34,7 +34,7 @@ ssh clouddev
 You can also connect directly without a config file:
 
 ```bash
-ssh -p 3434 <your-username>@<server-ip>
+ssh -p 3434 abc@<server-ip>
 ```
 
 :::tip[Skip repeated password prompts (optional)]
@@ -122,7 +122,7 @@ Create `~/Documents/Workspaces/cloud-dev.code-workspace`:
             "commands": [
                 {
                     "match": ".*",
-                    "cmd": "rsync -avz --delete -e 'ssh -p 3434' /Users/<your-username>/Code/my-project/ <your-username>@<server-ip>:/projects/my-project/"
+                    "cmd": "rsync -avz --delete -e 'ssh -p 3434' /Users/<your-username>/Code/my-project/ abc@<server-ip>:/projects/my-project/"
                 }
             ]
         }
@@ -149,7 +149,7 @@ Create `~/Workspaces/cloud-dev.code-workspace`:
             "commands": [
                 {
                     "match": ".*",
-                    "cmd": "rsync -avz --delete -e 'ssh -p 3434' /home/<your-username>/Code/my-project/ <your-username>@<server-ip>:/projects/my-project/"
+                    "cmd": "rsync -avz --delete -e 'ssh -p 3434' /home/<your-username>/Code/my-project/ abc@<server-ip>:/projects/my-project/"
                 }
             ]
         }
@@ -176,7 +176,7 @@ Windows requires [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) fo
             "commands": [
                 {
                     "match": ".*",
-                    "cmd": "rsync -avz --delete -e 'ssh -p 3434' /home/<your-username>/Code/my-project/ <your-username>@<server-ip>:/projects/my-project/"
+                    "cmd": "rsync -avz --delete -e 'ssh -p 3434' /home/<your-username>/Code/my-project/ abc@<server-ip>:/projects/my-project/"
                 }
             ]
         }

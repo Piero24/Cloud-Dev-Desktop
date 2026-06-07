@@ -1,3 +1,14 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/cloud-dev-docs/static/img/logo.svg" alt="Cloud Dev Desktop" width="120" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/Piero24/Cloud-Dev-Desktop/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
+  <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white" alt="Docker Compose" /></a>
+  <a href="https://casaos.io/"><img src="https://img.shields.io/badge/CasaOS-supported-3B82F6" alt="CasaOS" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/arch-amd64%20%7C%20arm64-2563EB" alt="Architecture: amd64 | arm64" /></a>
+</p>
+
 # Cloud Dev Stack
 
 One environment, two browser-based views. A Docker Compose stack that gives you a complete, persistent cloud development workspace — Ubuntu desktop, VS Code, and SSH, all sharing the same home directory and files.
