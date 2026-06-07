@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/cloud-dev-docs/static/img/logo.svg" alt="Cloud Dev Desktop" width="100" />
+  <img src="https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/.github/cloud_dev_desktop_logo.png" alt="Cloud Dev Desktop" width="100" />
 </p>
 
 # Cloud Dev Stack Docs

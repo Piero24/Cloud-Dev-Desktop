@@ -166,8 +166,8 @@ x-casaos:
   main: desktop
   developer: LinuxServer.io
   author: CloudDev
-  icon: https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/cloud-dev-docs/static/img/logo.svg
-  thumbnail: https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/cloud-dev-docs/static/img/logo.svg
+  icon: https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/.github/cloud_dev_desktop_logo.png
+  thumbnail: https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/.github/cloud_dev_desktop_logo.png
   title:
     en_us: Cloud Dev Stack
   category: Development

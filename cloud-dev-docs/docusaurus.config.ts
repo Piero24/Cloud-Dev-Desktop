@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'Cloud Dev Desktop',
   tagline: 'CDD is a containerized cloud development environment. Accessible from anywhere.',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/cloud_dev_desktop_logo.png',
 
   future: {
     v4: true,
@@ -50,7 +50,7 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: 'img/logo.svg',
+    image: 'img/cloud_dev_desktop_logo.png',
     colorMode: {
       defaultMode: 'dark',
       respectPrefersColorScheme: true,
@@ -59,7 +59,7 @@ const config: Config = {
       title: 'CDD',
       logo: {
         alt: 'Cloud Dev Desktop Logo',
-        src: 'img/logo.svg',
+        src: 'img/cloud_dev_desktop_logo.png',
       },
       items: [
         {
