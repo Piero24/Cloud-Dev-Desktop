@@ -11,7 +11,7 @@
 
 # Cloud Dev Stack
 
-One environment, two browser based views. A Docker Compose stack that gives you a complete, persistent cloud development workspace — Ubuntu desktop, VS Code, and SSH, all sharing the same home directory and files.
+One environment, two browser based views. A Docker Compose stack that gives you a complete, persistent cloud development workspace: Ubuntu desktop, VS Code, and SSH, all sharing the same home directory and files.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/install.sh | bash
@@ -25,7 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/inst
 | **vscode** | `linuxserver/code-server:latest` | VS Code in your browser, same home + files |
 | **beszel-agent** | `henrygd/beszel-agent:latest` | System metrics → your existing Beszel hub |
 
-Both containers share `/config` (home directory) and `/projects`. Install a package or change a setting — it appears in both instantly. The vscode container is a browser based editor view into the same environment.
+Both containers share `/config` (home directory) and `/projects`. Install a package or change a setting: it appears in both instantly. The vscode container is a browser based editor view into the same environment.
 
 Pre installed: nvm + Node LTS, Claude Code, code-server, build-essential, Python, Java, Docker CLI, tmux, zsh.
 
@@ -87,8 +87,8 @@ docker compose up -d
 |------|---------|
 | [`compose.yaml`](compose.yaml) | Plain Docker Compose (short syntax, relative paths) |
 | [`compose-casaos.yaml`](compose-casaos.yaml) | CasaOS Compose (long syntax, `x-casaos` metadata) |
-| [`init.sh`](init.sh) | Desktop container boot script — SSH, nvm, Node, Claude Code, code-server |
-| [`init.d/99-vscode-env.sh`](init.d/99-vscode-env.sh) | VSCode container boot script — shared extensions |
+| [`init.sh`](init.sh) | Desktop container boot script: SSH, nvm, Node, Claude Code, code-server |
+| [`init.d/99-vscode-env.sh`](init.d/99-vscode-env.sh) | VSCode container boot script: shared extensions |
 | [`install.sh`](install.sh) | Interactive CasaOS installer |
 
 ## Docs
@@ -110,4 +110,4 @@ Full documentation at [`cloud-dev-docs/`](cloud-dev-docs/):
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT: see [LICENSE](LICENSE).

@@ -15,7 +15,7 @@ ssh -p 3434 abc@<server-ip>
 
 ## Persistent sessions with tmux
 
-tmux keeps your terminal sessions alive even if you disconnect — essential when working from a phone or an unstable connection.
+tmux keeps your terminal sessions alive even if you disconnect: essential when working from a phone or an unstable connection.
 
 **Connect normally (no tmux):**
 
@@ -53,11 +53,11 @@ Next time you connect from Termius, you're back in the same tmux session.
 | Kill current session | `tmux kill-session` |
 | Kill all sessions | `tmux kill-server` |
 | Kill all except current | `tmux kill-session -a` |
-| **Keep session forever** | `tmux-keep` — prevents auto cleanup for this session |
+| **Keep session forever** | `tmux-keep`: prevents auto cleanup for this session |
 
 :::tip[Override the timeout]
 
-Mid-task and realize you need more time? Run `tmux-keep` inside the tmux session. The cleanup daemon will skip it — it stays alive until you manually kill it, regardless of `TMUX_TIMEOUT`.
+Mid-task and realize you need more time? Run `tmux-keep` inside the tmux session. The cleanup daemon will skip it: it stays alive until you manually kill it, regardless of `TMUX_TIMEOUT`.
 
 :::
 
@@ -97,7 +97,7 @@ To end an SSH session, type `exit` or press `Ctrl+D`.
 
 :::note
 
-If the server reboots, your SSH session ends — just run `ssh -p 3434 abc@<server-ip>` again.
+If the server reboots, your SSH session ends: just run `ssh -p 3434 abc@<server-ip>` again.
 
 tmux sessions survive disconnects but not server reboots. Reattach with `tmux attach -t main` after reboot.
 

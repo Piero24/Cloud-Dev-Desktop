@@ -74,7 +74,7 @@ export PATH=~/go/bin:~/.npm-global/bin:$PATH  # makes npm global + go bins avail
 
 Plus `~/.npmrc` has `prefix=~/.npm-global` for npm.
 
-This means a bare `pip install matplotlib` goes to `/config/.local` — no `--user` flag needed. Same for npm global installs.
+This means a bare `pip install matplotlib` goes to `/config/.local`: no `--user` flag needed. Same for npm global installs.
 
 ## Adding a new language or tool permanently
 
@@ -83,7 +83,7 @@ Two-step process:
 1. **If it needs `apt`:** edit `99-ssh.sh`, add the package to the `apt-get install` line, restart the container.
 2. **If it installs to your home directory:** just install it inside the container normally (`pip install`, `npm install -g`, `go install`, etc.). It persists automatically in `/config`.
 
-Example — adding Go:
+Example: adding Go:
 
 ```bash
 # Edit 99-ssh.sh, add 'golang-go' to the apt-get line

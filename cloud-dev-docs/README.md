@@ -4,7 +4,7 @@
 
 # Cloud Dev Stack Docs
 
-Documentation site for Cloud Dev Stack — a containerized cloud development environment for CasaOS.
+Documentation site for Cloud Dev Stack: a containerized cloud development environment for CasaOS.
 
 Built with [Docusaurus](https://docusaurus.io/).
 
@@ -23,7 +23,7 @@ npm run build
 
 ## Deploy
 
-Push to `main` — GitHub Actions builds and deploys to GitHub Pages automatically.
+Push to `main`: GitHub Actions builds and deploys to GitHub Pages automatically.
 
 Or deploy manually:
 

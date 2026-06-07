@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Cloud Dev Stack
 
-A complete, persistent cloud development environment — one shared workspace, two browser based views.
+A complete, persistent cloud development environment: one shared workspace, two browser based views.
 
 ## What You Get
 
@@ -12,11 +12,11 @@ A complete, persistent cloud development environment — one shared workspace, t
 - **VS Code in your browser**: same files, same tools, same environment
 - **SSH access**: connect from local devices like PC, Mac, or iPhone
 - **Persistent tmux sessions**: your work survives disconnects and app switches, especially useful on mobile
-- **Everything shared**: both containers mount the same `/config` (home) and `/projects`. Install a package, set a git config, or save a file — it's visible everywhere instantly
+- **Everything shared**: both containers mount the same `/config` (home) and `/projects`. Install a package, set a git config, or save a file: it's visible everywhere instantly
 
 ## Architecture
 
-Two containers, one environment. They share `/config` (home directory) and `/projects` — the vscode container is a browser based editor view into the same workspace:
+Two containers, one environment. They share `/config` (home directory) and `/projects`: the vscode container is a browser based editor view into the same workspace:
 
 ```mermaid
 flowchart TB

@@ -25,7 +25,7 @@ source ~/.nvm/nvm.sh
 npm update -g @anthropic-ai/claude-code
 ```
 
-The update persists in `/config/.npm-global` — no need to redo it after rebuilds.
+The update persists in `/config/.npm-global`: no need to redo it after rebuilds.
 
 ## Docker-in-Docker permissions
 
@@ -43,7 +43,7 @@ You may also need to match the host's docker GID inside the container.
 
 ### Wrong password? Use SUDO_PASSWORD
 
-SSH uses `SUDO_PASSWORD`, not `PASSWORD`. The web desktop uses `PASSWORD` for KasmVNC login — these are two different variables in the compose file.
+SSH uses `SUDO_PASSWORD`, not `PASSWORD`. The web desktop uses `PASSWORD` for KasmVNC login: these are two different variables in the compose file.
 
 ```bash
 ssh -p 3434 abc@<server-ip>
@@ -80,7 +80,7 @@ docker exec -it -u root dev-desktop service ssh start
 
 ## Multiple projects
 
-The rsync `cmd` hardcodes the project path. For multiple projects, create separate `.code-workspace` files — one per project. Each contains its own `emeraldwalk.runonsave` command with the correct server path.
+The rsync `cmd` hardcodes the project path. For multiple projects, create separate `.code-workspace` files: one per project. Each contains its own `emeraldwalk.runonsave` command with the correct server path.
 
 
 ## Known edge cases
