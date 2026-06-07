@@ -37,6 +37,18 @@ apt-get install -y -qq \
     zsh \
     nano
 
+# ---- VS Code (desktop, inside the container) ----
+if ! command -v code &>/dev/null; then
+    echo "[cloud-dev] Installing VS Code..."
+    wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg
+    echo "deb [arch=amd64] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
+    apt-get update -qq
+    apt-get install -y -qq code
+    echo "[cloud-dev] VS Code installed"
+else
+    echo "[cloud-dev] VS Code already installed, skipping."
+fi
+
 # ---- SSH server ----
 echo "[cloud-dev] Configuring SSH..."
 sed -i 's/#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
