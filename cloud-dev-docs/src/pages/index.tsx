@@ -21,12 +21,6 @@ const features = [
       'Edit files locally on your Mac. Changes sync to the server automatically via rsync through a multiplexed SSH tunnel — including deletions. No background daemon required.',
   },
   {
-    title: '2FA Protected',
-    emoji: '🔒',
-    description:
-      'Cloudflare Zero Trust 2FA gates all web access. SSH is protected by password + optional TOTP 2FA at session start, then reused for hours via ControlMaster multiplexing.',
-  },
-  {
     title: 'VS Code Everywhere',
     emoji: '📝',
     description:
@@ -36,13 +30,19 @@ const features = [
     title: 'Persistent Dev Environment',
     emoji: '💾',
     description:
-      'All user-installed packages, tools, and configs survive container rebuilds. nvm, Node LTS, Claude Code, Python, and build tools come pre-installed. Add more anytime.',
+      'Your entire workspace — nvm, Node LTS, Claude Code, Python, Go, and build tools — comes pre-installed. User packages and configs survive container rebuilds. Add more anytime via the init script.',
   },
   {
     title: 'One-Click Reset',
     emoji: '🔄',
     description:
       'Kill switch built in. Wipe all user state with one command and get a fresh container on next boot — without touching your project files.',
+  },
+  {
+    title: 'Works on Anything',
+    emoji: '🌐',
+    description:
+      'Browser-based desktop and VS Code, plus SSH. Connect from any device — laptop, tablet, or phone. No client installs, no platform lock-in.',
   },
 ];
 

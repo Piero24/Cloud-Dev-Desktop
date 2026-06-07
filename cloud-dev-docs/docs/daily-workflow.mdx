@@ -6,42 +6,40 @@ sidebar_position: 5
 
 ## Starting a session
 
+Open a terminal and connect via SSH:
+
 ```bash
-# Open a terminal and connect via SSH
-ssh clouddev
-# → Enter SUDO_PASSWORD
-# → You're connected.
+ssh -p 3434 abc@<server-ip>
+# → Enter your SUDO_PASSWORD
 ```
 
 ## Persistent sessions with tmux
 
-The server auto-detects where you're connecting from and starts tmux only when needed.
+tmux keeps your terminal sessions alive even if you disconnect — essential when working from a phone or an unstable connection.
 
-**Setup (one-time):** In Termius, edit your clouddev host → add environment variables:
+**Connect normally (no tmux):**
+
+```bash
+ssh -p 3434 abc@<server-ip>       # normal shell — closing the terminal stops everything
+```
+
+**Connect with tmux auto-attach (from Termius):**
+
+In Termius, edit your host → add these environment variables:
 
 | Key | Value | Purpose |
 |-----|-------|---------|
-| `TMUX_AUTO` | `1` | Auto-attach tmux on connect |
+| `TMUX_AUTO` | `1` | Auto-attach or create a tmux session on connect |
 | `TMUX_TIMEOUT` | `2` | Kill detached session after N hours (`-1`=never, `0`=on detach) |
 
-With `TMUX_TIMEOUT=2`: if you disconnect and don't reconnect within 2 hours, the tmux session auto-cleans. No zombie sessions.
-
-**From Mac/PC:** connects normally — no tmux, close terminal = everything stops.
+Then connect normally:
 
 ```bash
-ssh clouddev          # normal shell
+ssh -p 3434 abc@<server-ip>       # → auto-attached to tmux "main" (Termius sent TMUX_AUTO=1)
+claude                             # runs inside tmux — survives disconnects
 ```
 
-**From iPhone/Termius:** auto-attaches to a persistent tmux session — switch apps, lose signal, everything keeps running.
-
-```bash
-ssh clouddev          # → auto-attached to tmux "main" (Termius sent TMUX_AUTO=1)
-claude                # runs inside tmux — survives disconnects
-```
-
-Next time you connect from Termius, you're back in the same session.
-
-**How it works:** Termius sends `TMUX_AUTO=1` via SSH. The server's `.bashrc` checks for it: if set → `exec tmux`, if not → normal shell. No typing, no flags, completely automatic.
+Next time you connect from Termius, you're back in the same tmux session.
 
 **Key commands inside tmux:**
 
@@ -57,7 +55,7 @@ Next time you connect from Termius, you're back in the same session.
 | Kill all except current | `tmux kill-session -a` |
 | **Keep session forever** | `tmux-keep` — prevents auto-cleanup for this session |
 
-:::tip Override the timeout
+:::tip[Override the timeout]
 
 Mid-task and realize you need more time? Run `tmux-keep` inside the tmux session. The cleanup daemon will skip it — it stays alive until you manually kill it, regardless of `TMUX_TIMEOUT`.
 
@@ -67,8 +65,8 @@ Mid-task and realize you need more time? Run `tmux-keep` inside the tmux session
 
 You don't need a local machine. Everything runs on the server:
 
-- **VS Code**: browser at `https://code.yourdomain.com`
-- **Terminal**: SSH from anywhere, or use the terminal in the web desktop
+- **VS Code**: browser at `http://<server-ip>:9090`
+- **Terminal**: SSH from anywhere (`ssh -p 3434 abc@<server-ip>`), or use the terminal in the web desktop
 - **Claude Code / long tasks**: inside tmux — survives disconnects
 - **Files**: live at `/projects/` — visible in all apps
 
@@ -88,10 +86,10 @@ See [Local Setup](./local-setup) for the full configuration.
 
 | Method | URL / Command | Auth |
 |--------|---------------|------|
-| Ubuntu Desktop (browser) | `https://desktop.yourdomain.com` | Password |
-| VS Code (browser) | `https://code.yourdomain.com` | Password |
-| SSH from anywhere | `ssh clouddev` (port 3434) | Password |
-| SSH from iPhone (Termius) | Add host with port 3434 | Password |
+| Ubuntu Desktop (browser) | `http://<server-ip>:3000` | Password |
+| VS Code (browser) | `http://<server-ip>:9090` | Password |
+| SSH from anywhere | `ssh -p 3434 abc@<server-ip>` | Password |
+| SSH from iPhone (Termius) | `ssh -p 3434 abc@<server-ip>` + set `TMUX_AUTO=1` | Password |
 
 ## Ending a session
 
@@ -99,7 +97,7 @@ To end an SSH session, type `exit` or press `Ctrl+D`.
 
 :::note
 
-If the server reboots, your SSH session ends — just run `ssh clouddev` again.
+If the server reboots, your SSH session ends — just run `ssh -p 3434 abc@<server-ip>` again.
 
 tmux sessions survive disconnects but not server reboots. Reattach with `tmux attach -t main` after reboot.
 

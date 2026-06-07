@@ -36,6 +36,7 @@
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: 12px;
   padding: 2rem;
+  height: 100%;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 

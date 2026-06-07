@@ -9,7 +9,7 @@ sidebar_position: 7
 If you run a dev server inside the container (e.g., `npm run dev` on port 5173), forward it to your local machine:
 
 ```bash
-ssh -L 5173:localhost:5173 clouddev
+ssh -L 5173:localhost:5173 -p 3434 abc@<server-ip>
 ```
 
 Then open `http://localhost:5173` in your browser. Repeat for each port you need. The forwarded port stays alive as long as the SSH session is open.
@@ -94,7 +94,7 @@ If you edit a file and immediately run a command on the server that reads it, th
 The Run on Save rsync command runs in the background and cannot prompt for a password. You need one of:
 
 - **SSH keys** — set up key-based authentication so rsync connects without a password
-- **SSH multiplexing** — if you added the optional ControlMaster config, run `ssh clouddev` once from a terminal to open the shared connection; rsync then rides it without prompting
+- **SSH multiplexing** — if you added the optional ControlMaster config, run `ssh -p 3434 abc@<server-ip>` once from a terminal to open the shared connection; rsync then rides it without prompting
 
 ## Setting up your GitHub token
 

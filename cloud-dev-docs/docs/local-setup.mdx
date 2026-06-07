@@ -13,33 +13,20 @@ You don't need a local setup. Everything works server-side — browser-based des
 
 :::
 
-## Step 1: Configure SSH
+## Step 1: Connect via SSH
 
-Create or edit `~/.ssh/config` to add a shortcut for your server:
-
-```
-Host clouddev
-    HostName <server-ip>
-    Port 3434
-    User abc
-```
-
-Test the connection:
-
-```bash
-ssh clouddev
-# → Enter your SUDO_PASSWORD
-```
-
-You can also connect directly without a config file:
+The server listens on port **3434**. Connect with:
 
 ```bash
 ssh -p 3434 abc@<server-ip>
+# → Enter your SUDO_PASSWORD
 ```
+
+Replace `<server-ip>` with your server's IP address.
 
 :::tip[Skip repeated password prompts (optional)]
 
-If you connect frequently and don't want to re-enter your password each time, add SSH multiplexing above your Host entry in `~/.ssh/config`:
+If you connect frequently, you can make SSH reuse a single authenticated connection so you only enter your password once every 16 hours. Add this at the **top** of `~/.ssh/config`:
 
 ```
 Host *
@@ -48,14 +35,20 @@ Host *
     ControlPersist 16h
 ```
 
-Then create the sockets directory:
+Then create the directory it needs:
 
 ```bash
 mkdir -p ~/.ssh/sockets
 chmod 700 ~/.ssh/sockets
 ```
 
-After that, `ssh`, `scp`, and `rsync` reuse the same authenticated connection for 16 hours — no more password prompts.
+**How it works:** When you first run `ssh -p 3434 abc@<server-ip>`, you enter your password as usual. SSH keeps that connection open in the background. Every subsequent `ssh`, `scp`, or `rsync` to the same server rides the existing connection — no password prompt — for up to 16 hours.
+
+:::note
+
+If rsync fails with a connection error, it may be because the multiplexed SSH connection has timed out. Run `ssh -O exit abc@<server-ip>` to close the old connection, then connect again normally — rsync will work.
+
+:::
 
 :::
 
