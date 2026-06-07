@@ -9,7 +9,7 @@ import TabItem from '@theme/TabItem';
 
 :::note[Optional]
 
-You don't need a local setup. Everything works server-side — browser-based desktop, VS Code, and SSH from any device. This page covers optional local editing with automatic sync to the server.
+You don't need a local setup. Everything works server side: browser based desktop, VS Code, and SSH from any device. This page covers optional local editing with automatic sync to the server.
 
 :::
 
@@ -181,9 +181,9 @@ Windows requires [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) fo
 </Tabs>
 
 **Replace:**
-- `<your-username>` — your system username
-- `<server-ip>` — your server's IP address
-- `my-project` — your project folder name (both in the local path and on `/projects/`)
+- `<your-username>`: your system username
+- `<server-ip>`: your server's IP address
+- `my-project`: your project folder name (both in the local path and on `/projects/`)
 - Adjust the local path (`/Users/.../Code/` or `/home/.../Code/`) to match where your project lives
 
 **How it works:**
@@ -204,13 +204,13 @@ Windows requires [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) fo
 
 ### Why `rsync` instead of `scp`
 
-- `scp` only uploads files — deletions are lost. You'd have to manually clean up the server
+- `scp` only uploads files: deletions are lost. You'd have to manually clean up the server
 - `rsync --delete` gives you a true mirror: create, edit, delete locally → reflected on the server
-- `rsync` sends only changed blocks, not entire files — faster for large files
-- `rsync` scans the full project on every run — for typical projects this takes under a second
+- `rsync` sends only changed blocks, not entire files: faster for large files
+- `rsync` scans the full project on every run: for typical projects this takes under a second
 
 ## Step 5: Open the workspace
 
 Instead of `File → Open Folder`, use:
-- Double-click `cloud-dev.code-workspace` in your file manager
+- Double click `cloud-dev.code-workspace` in your file manager
 - Or `File → Open Workspace from File...` in VS Code

@@ -4,19 +4,19 @@ sidebar_position: 1
 
 # Cloud Dev Stack
 
-A complete, persistent cloud development environment — one shared workspace, two browser-based views.
+A complete, persistent cloud development environment — one shared workspace, two browser based views.
 
 ## What You Get
 
-- **Ubuntu desktop in your browser** — full XFCE desktop from any device
-- **VS Code in your browser** — same files, same tools, same environment
-- **SSH access** — connect from local devices like PC, Mac, or iPhone
-- **Persistent tmux sessions** — your work survives disconnects and app switches, especially useful on mobile
-- **Everything shared** — both containers mount the same `/config` (home) and `/projects`. Install a package, set a git config, or save a file — it's visible everywhere instantly
+- **Ubuntu desktop in your browser**: full XFCE desktop from any device
+- **VS Code in your browser**: same files, same tools, same environment
+- **SSH access**: connect from local devices like PC, Mac, or iPhone
+- **Persistent tmux sessions**: your work survives disconnects and app switches, especially useful on mobile
+- **Everything shared**: both containers mount the same `/config` (home) and `/projects`. Install a package, set a git config, or save a file — it's visible everywhere instantly
 
 ## Architecture
 
-Two containers, one environment. They share `/config` (home directory) and `/projects` — the vscode container is a browser-based editor view into the same workspace:
+Two containers, one environment. They share `/config` (home directory) and `/projects` — the vscode container is a browser based editor view into the same workspace:
 
 ```mermaid
 flowchart TB
@@ -96,7 +96,7 @@ If it lands in `/config`, it persists forever and appears in both containers. If
 
 ## Next steps
 
-- **[Server Setup](./server-setup)** — get the stack running (Docker or CasaOS)
-- **[Local Setup](./local-setup)** — optional: edit locally, auto-sync to server
-- **[Daily Workflow](./daily-workflow)** — tmux, persistent sessions, Termius
-- **[Environment Variables](./env-vars)** — full reference for all configurable vars
+- **[Server Setup](./server-setup)**: get the stack running (Docker or CasaOS)
+- **[Local Setup](./local-setup)**: optional: edit locally, auto sync to server
+- **[Daily Workflow](./daily-workflow)**: tmux, persistent sessions, Termius
+- **[Environment Variables](./env-vars)**: full reference for all configurable vars

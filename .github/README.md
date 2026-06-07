@@ -11,7 +11,7 @@
 
 # Cloud Dev Stack
 
-One environment, two browser-based views. A Docker Compose stack that gives you a complete, persistent cloud development workspace — Ubuntu desktop, VS Code, and SSH, all sharing the same home directory and files.
+One environment, two browser based views. A Docker Compose stack that gives you a complete, persistent cloud development workspace — Ubuntu desktop, VS Code, and SSH, all sharing the same home directory and files.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/install.sh | bash
@@ -25,9 +25,9 @@ curl -fsSL https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/inst
 | **vscode** | `linuxserver/code-server:latest` | VS Code in your browser, same home + files |
 | **beszel-agent** | `henrygd/beszel-agent:latest` | System metrics → your existing Beszel hub |
 
-Both containers share `/config` (home directory) and `/projects`. Install a package or change a setting — it appears in both instantly. The vscode container is a browser-based editor view into the same environment.
+Both containers share `/config` (home directory) and `/projects`. Install a package or change a setting — it appears in both instantly. The vscode container is a browser based editor view into the same environment.
 
-Pre-installed: nvm + Node LTS, Claude Code, code-server, build-essential, Python, Java, Docker CLI, tmux, zsh.
+Pre installed: nvm + Node LTS, Claude Code, code-server, build-essential, Python, Java, Docker CLI, tmux, zsh.
 
 ## Architecture
 
@@ -74,12 +74,12 @@ docker compose up -d
 
 ## Key features
 
-- **One environment, two views** — both containers share `/config` (home) and `/projects`. Same shell, git, nvm, packages everywhere
-- **Persistent sessions** — tmux auto-attach from iPhone/Termius via `TMUX_AUTO=1`; sessions survive disconnects
-- **Configurable cleanup** — `TMUX_TIMEOUT` auto-kills detached sessions after N hours; `tmux-keep` overrides it
-- **Persistent packages** — everything in `/config` survives container rebuilds
-- **No Mac required** — work entirely from a browser and SSH
-- **Monitoring** — Beszel agent feeds system metrics to your existing hub
+- **One environment, two views**: both containers share `/config` (home) and `/projects`. Same shell, git, nvm, packages everywhere
+- **Persistent sessions**: tmux auto attach from iPhone/Termius via `TMUX_AUTO=1`; sessions survive disconnects
+- **Configurable cleanup**: `TMUX_TIMEOUT` auto kills detached sessions after N hours; `tmux-keep` overrides it
+- **Persistent packages**: everything in `/config` survives container rebuilds
+- **No Mac required**: work entirely from a browser and SSH
+- **Monitoring**: Beszel agent feeds system metrics to your existing hub
 
 ## Files
 
@@ -96,11 +96,11 @@ docker compose up -d
 Full documentation at [`cloud-dev-docs/`](cloud-dev-docs/):
 
 - [Overview & Architecture](cloud-dev-docs/docs/index.mdx)
-- [Server Setup](cloud-dev-docs/docs/server-setup.mdx) — Docker or CasaOS (single page with tabs)
-- [Local Setup](cloud-dev-docs/docs/local-setup.mdx) — optional local editing with auto-sync
-- [Daily Workflow](cloud-dev-docs/docs/daily-workflow.mdx) — tmux, persistent sessions, Termius
+- [Server Setup](cloud-dev-docs/docs/server-setup.mdx): Docker or CasaOS (single page with tabs)
+- [Local Setup](cloud-dev-docs/docs/local-setup.mdx): optional local editing with auto sync
+- [Daily Workflow](cloud-dev-docs/docs/daily-workflow.mdx): tmux, persistent sessions, Termius
 - [Persistence & Kill Switch](cloud-dev-docs/docs/persistence.mdx)
-- [Environment Variables](cloud-dev-docs/docs/env-vars.mdx) — full reference
+- [Environment Variables](cloud-dev-docs/docs/env-vars.mdx): full reference
 - [Tips & Troubleshooting](cloud-dev-docs/docs/tips.mdx)
 
 ## Requirements

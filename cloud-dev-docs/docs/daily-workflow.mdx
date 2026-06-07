@@ -35,7 +35,7 @@ In Termius, edit your host → add these environment variables:
 Then connect normally:
 
 ```bash
-ssh -p 3434 abc@<server-ip>       # → auto-attached to tmux "main" (Termius sent TMUX_AUTO=1)
+ssh -p 3434 abc@<server-ip>       # → auto attached to tmux "main" (Termius sent TMUX_AUTO=1)
 claude                             # runs inside tmux — survives disconnects
 ```
 
@@ -53,7 +53,7 @@ Next time you connect from Termius, you're back in the same tmux session.
 | Kill current session | `tmux kill-session` |
 | Kill all sessions | `tmux kill-server` |
 | Kill all except current | `tmux kill-session -a` |
-| **Keep session forever** | `tmux-keep` — prevents auto-cleanup for this session |
+| **Keep session forever** | `tmux-keep` — prevents auto cleanup for this session |
 
 :::tip[Override the timeout]
 
@@ -61,14 +61,14 @@ Mid-task and realize you need more time? Run `tmux-keep` inside the tmux session
 
 :::
 
-## Working server-side (no local setup needed)
+## Working server side (no local setup needed)
 
 You don't need a local machine. Everything runs on the server:
 
 - **VS Code**: browser at `http://<server-ip>:9090`
 - **Terminal**: SSH from anywhere (`ssh -p 3434 abc@<server-ip>`), or use the terminal in the web desktop
-- **Claude Code / long tasks**: inside tmux — survives disconnects
-- **Files**: live at `/projects/` — visible in all apps
+- **Claude Code / long tasks**: inside tmux, survives disconnects
+- **Files**: live at `/projects/`, visible in all apps
 
 ## Working locally (optional)
 

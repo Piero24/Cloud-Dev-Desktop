@@ -93,24 +93,24 @@ If you edit a file and immediately run a command on the server that reads it, th
 
 The Run on Save rsync command runs in the background and cannot prompt for a password. You need one of:
 
-- **SSH keys** — set up key-based authentication so rsync connects without a password
-- **SSH multiplexing** — if you added the optional ControlMaster config, run `ssh -p 3434 abc@<server-ip>` once from a terminal to open the shared connection; rsync then rides it without prompting
+- **SSH keys**: set up key based authentication so rsync connects without a password
+- **SSH multiplexing**: if you added the optional ControlMaster config, run `ssh -p 3434 abc@<server-ip>` once from a terminal to open the shared connection; rsync then rides it without prompting
 
 ## Setting up your GitHub token
 
 The stack uses `GITHUB_TOKEN` to authenticate `git` operations (clone, push, pull) against private repos. It's set in `compose.yaml` and applied automatically by the init script via `git config --global url.insteadOf`.
 
-### Creating a fine-grained token (recommended)
+### Creating a fine grained token (recommended)
 
 1. Go to [github.com/settings/tokens?type=beta](https://github.com/settings/tokens?type=beta)
 2. Click **Generate new token**
 3. Fill in:
-   - **Token name** — e.g. `cloud-dev-stack`
-   - **Resource owner** — your user or org
-   - **Repository access** — choose **All repositories** or pick the specific repos you need
+   - **Token name**: e.g. `cloud-dev-stack`
+   - **Resource owner**: your user or org
+   - **Repository access**: choose **All repositories** or pick the specific repos you need
 4. Under **Permissions** → **Repository permissions**, set:
-   - **Contents** — Read and write (required for clone, push, pull)
-   - **Metadata** — Read-only (auto-selected, required for all tokens)
+   - **Contents**: Read and write (required for clone, push, pull)
+   - **Metadata**: Read-only (auto selected, required for all tokens)
 5. Click **Generate token** and copy it
 
 ### Creating a classic token (alternative)
@@ -118,7 +118,7 @@ The stack uses `GITHUB_TOKEN` to authenticate `git` operations (clone, push, pul
 1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
 2. Click **Generate new token** → **Generate new token (classic)**
 3. Give it a name and check:
-   - **repo** — full control of private repositories (or just `public_repo` if you only work with public repos)
+   - **repo**: full control of private repositories (or just `public_repo` if you only work with public repos)
 4. Click **Generate token** and copy it
 
 ### Using the token
@@ -156,11 +156,11 @@ git ls-remote https://github.com/you/private-repo.git
 
 ### Token security
 
-- The token is stored inside the container's git config — it persists across rebuilds because `/config/.gitconfig` lives on the shared volume
+- The token is stored inside the container's git config: it persists across rebuilds because `/config/.gitconfig` lives on the shared volume
 - Treat your compose file as a secret: anyone with the token can act as you on GitHub
 - If the token is ever leaked, revoke it immediately at [github.com/settings/tokens](https://github.com/settings/tokens)
 
 ## See also
 
-- **[Environment Variables](./env-vars)** — full reference for all configurable env vars (API keys, Git, models)
-- **[Daily Workflow](./daily-workflow)** — tmux, persistent sessions, Termius setup
+- **[Environment Variables](./env-vars)**: full reference for all configurable env vars (API keys, Git, models)
+- **[Daily Workflow](./daily-workflow)**: tmux, persistent sessions, Termius setup

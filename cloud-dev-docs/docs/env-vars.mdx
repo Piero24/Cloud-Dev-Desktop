@@ -25,7 +25,7 @@ Edit `compose.yaml`, recreate the desktop container, done. Both containers see t
 
 | Env var | Default | What it does |
 |---------|---------|---------------|
-| `ANTHROPIC_BASE_URL` | *(empty)* | Leave empty for Anthropic. Set to a third-party URL ([DeepSeek](https://platform.deepseek.com), [OpenRouter](https://openrouter.ai), etc.) to use a different provider |
+| `ANTHROPIC_BASE_URL` | *(empty)* | Leave empty for Anthropic. Set to a third party URL ([DeepSeek](https://platform.deepseek.com), [OpenRouter](https://openrouter.ai), etc.) to use a different provider |
 | `ANTHROPIC_AUTH_TOKEN` | *(required)* | Your API key. Get one at [console.anthropic.com](https://console.anthropic.com) |
 | `ANTHROPIC_MODEL` | `claude-opus-4-8` | Default model Claude Code uses for all tasks |
 | `ANTHROPIC_DEFAULT_OPUS_MODEL` | `claude-opus-4-8` | Model used when Opus tier is selected |
@@ -36,7 +36,7 @@ Edit `compose.yaml`, recreate the desktop container, done. Both containers see t
 
 ### Using a different provider
 
-If `ANTHROPIC_BASE_URL` is left empty, Claude Code connects directly to Anthropic's API. To use a third-party provider, set the URL and adjust model names.
+If `ANTHROPIC_BASE_URL` is left empty, Claude Code connects directly to Anthropic's API. To use a third party provider, set the URL and adjust model names.
 
 **DeepSeek example:**
 
@@ -77,14 +77,14 @@ source ~/.zshrc
 |---------|---------------|
 | `GIT_USER_NAME` | Your name for commits (`git config user.name`) |
 | `GIT_USER_EMAIL` | Your email for commits (`git config user.email`) |
-| `GITHUB_TOKEN` | GitHub [fine-grained PAT](https://github.com/settings/tokens?type=beta) — used for all `git clone` / `push` / `pull` |
+| `GITHUB_TOKEN` | GitHub [fine grained PAT](https://github.com/settings/tokens?type=beta): used for all `git clone` / `push` / `pull` |
 
 ### Creating a GitHub token
 
 Go to [github.com/settings/tokens?type=beta](https://github.com/settings/tokens?type=beta):
 
 1. **Repository access**: "Only select repositories" — pick which ones
-2. **Permissions**: Contents (read/write as needed), Metadata (read, auto-selected)
+2. **Permissions**: Contents (read/write as needed), Metadata (read, auto selected)
 3. Copy the `github_pat_...` token into `GITHUB_TOKEN`
 
 The token can be revoked or scoped anytime. No account password stored — if the container is compromised, you only lose access to the repos you explicitly granted.
