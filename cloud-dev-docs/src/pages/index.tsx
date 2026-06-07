@@ -12,37 +12,37 @@ const features = [
     title: 'Browser-Based Desktop',
     emoji: '🖥️',
     description:
-      'Full Ubuntu XFCE desktop in your browser via linuxserver/webtop. Accessible from any device — no remote desktop client needed.',
+      'Full Ubuntu XFCE desktop in your browser via linuxserver/webtop. Accessible from any device no remote desktop client needed.',
   },
   {
     title: 'Full Bidirectional Sync',
     emoji: '🔄',
     description:
-      'Edit files locally on your Mac. Changes sync to the server automatically via rsync through a multiplexed SSH tunnel — including deletions. No background daemon required.',
+      'Edit files locally on your Mac. Changes sync to the server automatically via rsync through a multiplexed SSH tunnel including deletions. No background daemon required.',
   },
   {
     title: 'VS Code Everywhere',
     emoji: '📝',
     description:
-      'Browser-based VS Code (code-server) on a separate port. Shares the same /projects volume with the desktop container — same files, instant visibility.',
+      'Browser-based VS Code (code-server) on a separate port. Shares the same /projects volume with the desktop container same files, instant visibility.',
   },
   {
     title: 'Persistent Dev Environment',
     emoji: '💾',
     description:
-      'Your entire workspace — nvm, Node LTS, Claude Code, Python, Go, and build tools — comes pre-installed. User packages and configs survive container rebuilds. Add more anytime via the init script.',
+      'Your entire workspace nvm, Node LTS, Claude Code, Python, Go, and build tools comes pre-installed. User packages and configs survive container rebuilds. Add more anytime via the init script.',
   },
   {
     title: 'One-Click Reset',
     emoji: '🔄',
     description:
-      'Kill switch built in. Wipe all user state with one command and get a fresh container on next boot — without touching your project files.',
+      'Kill switch built in. Wipe all user state with one command and get a fresh container on next boot without touching your project files.',
   },
   {
     title: 'Works on Anything',
     emoji: '🌐',
     description:
-      'Browser-based desktop and VS Code, plus SSH. Connect from any device — laptop, tablet, or phone. No client installs, no platform lock-in.',
+      'Browser-based desktop and VS Code, plus SSH. Connect from any device laptop, tablet, or phone. No client installs, no platform lock-in.',
   },
 ];
 
