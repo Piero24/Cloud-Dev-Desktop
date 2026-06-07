@@ -52,13 +52,13 @@ Replace in the **desktop** service:
 
 :::warning[Username is always abc]
 
-The system username is locked to `abc`: the linuxserver base image uses it for the pre configured desktop and services. Changing it would break KasmVNC, SSH, and file permissions. SSH login: `ssh -p 3434 abc@<server-ip>`.
+The system username is locked to `abc`. The linuxserver base image uses it for the pre configured desktop and services. Changing it would break KasmVNC, SSH, and file permissions. SSH login: `ssh -p 3434 abc@<server-ip>`.
 
 :::
 
 :::tip[Both containers share the same home]
 
-Desktop and vscode mount the same `./config` volume as `/config`: they share shell config, git identity, nvm, Node, Claude Code, and all installed packages. Install something in one, it's available in the other.
+Desktop and vscode mount the same `./config` volume as `/config`. They share shell config, git identity, nvm, Node, Claude Code, and all installed packages. Install something in one, it's available in the other.
 
 :::
 
@@ -75,9 +75,9 @@ You should see three containers: `dev-desktop`, `dev-vscode`, and `dev-beszel-ag
 
 | Test | URL / Command |
 |------|---------------|
-| Web desktop | `http://<server-ip>:3000`: KasmVNC login (user: `abc`, pass: `PASSWORD`) |
-| Web VS Code | `http://<server-ip>:9090`: code-server login (pass: `PASSWORD`) |
-| SSH | `ssh -p 3434 abc@<server-ip>`: login with `SUDO_PASSWORD` |
+| Web desktop | `http://<server-ip>:3000` — KasmVNC login (user: `abc`, pass: `PASSWORD`) |
+| Web VS Code | `http://<server-ip>:9090` — code-server login (pass: `PASSWORD`) |
+| SSH | `ssh -p 3434 abc@<server-ip>` — login with `SUDO_PASSWORD` |
 
 If all three work, the stack is running correctly.
 
@@ -111,13 +111,13 @@ Replace in the **desktop** service:
 
 :::warning[Username is always abc]
 
-The system username is locked to `abc`: the linuxserver base image uses it for the pre configured desktop and services. Changing it would break KasmVNC, SSH, and file permissions. SSH login: `ssh -p 3434 abc@<server-ip>`.
+The system username is locked to `abc`. The linuxserver base image uses it for the pre configured desktop and services. Changing it would break KasmVNC, SSH, and file permissions. SSH login: `ssh -p 3434 abc@<server-ip>`.
 
 :::
 
 :::tip[Both containers share the same home]
 
-Desktop and vscode mount the same `config` folder as `/config`: they share shell config, git identity, nvm, Node, Claude Code, and all installed packages. Install something in one, it's available in the other.
+Desktop and vscode mount the same `config` folder as `/config`. They share shell config, git identity, nvm, Node, Claude Code, and all installed packages. Install something in one, it's available in the other.
 
 :::
 
@@ -137,9 +137,9 @@ You should see three containers: `dev-desktop`, `dev-vscode`, and `dev-beszel-ag
 
 | Test | URL / Command |
 |------|---------------|
-| Web desktop | `http://<casaos-ip>:3000`: KasmVNC login (user: `abc`, pass: `PASSWORD`) |
-| Web VS Code | `http://<casaos-ip>:9090`: code-server login (pass: `PASSWORD`) |
-| SSH | `ssh -p 3434 abc@<casaos-ip>`: login with `SUDO_PASSWORD` |
+| Web desktop | `http://<casaos-ip>:3000` — KasmVNC login (user: `abc`, pass: `PASSWORD`) |
+| Web VS Code | `http://<casaos-ip>:9090` — code-server login (pass: `PASSWORD`) |
+| SSH | `ssh -p 3434 abc@<casaos-ip>` — login with `SUDO_PASSWORD` |
 
 If all three work, the stack is running correctly.
 

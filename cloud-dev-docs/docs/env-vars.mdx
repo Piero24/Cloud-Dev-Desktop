@@ -6,7 +6,7 @@ sidebar_position: 8
 
 All configurable environment variables live in `compose.yaml` under the **desktop** service. The init script writes them into the shared `/config` on every boot, so both containers pick them up automatically.
 
-`ANTHROPIC_AUTH_TOKEN` is the only value you must provide: without it, Claude Code won't start. Every other variable falls back to the default shown in its table.
+`ANTHROPIC_AUTH_TOKEN` is the only value you must provide. Without it, Claude Code won't start. Every other variable falls back to the default shown in its table.
 
 ## How it works
 
@@ -83,11 +83,11 @@ source ~/.zshrc
 
 Go to [github.com/settings/tokens?type=beta](https://github.com/settings/tokens?type=beta):
 
-1. **Repository access**: "Only select repositories": pick which ones
+1. **Repository access**: "Only select repositories", pick which ones
 2. **Permissions**: Contents (read/write as needed), Metadata (read, auto selected)
 3. Copy the `github_pat_...` token into `GITHUB_TOKEN`
 
-The token can be revoked or scoped anytime. No account password stored: if the container is compromised, you only lose access to the repos you explicitly granted.
+The token can be revoked or scoped anytime. No account password stored. If the container is compromised, you only lose access to the repos you explicitly granted.
 
 After setting these and recreating the container, `git clone`, `git push`, and `git pull` all use the token automatically.
 
