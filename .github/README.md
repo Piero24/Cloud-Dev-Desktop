@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/.github/cloud_dev_desktop_logo.png" alt="Cloud Dev Desktop" width="120" />
+  <img src="https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/.github/images/cloud_dev_desktop_logo.png" alt="Cloud Dev Desktop" width="120" />
 </p>
 
 <p align="center">
@@ -51,6 +51,18 @@ flowchart LR
     Code --> Config
     Code --> Projects
 ```
+
+## Screenshots
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/.github/images/desktop.png" alt="Ubuntu XFCE Desktop" width="80%" />
+  <br/><em>Full Ubuntu XFCE desktop in your browser</em>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/.github/images/code.png" alt="VS Code in browser" width="80%" />
+  <br/><em>VS Code in your browser — same home directory, same files</em>
+</p>
 
 ## Quickstart
 
