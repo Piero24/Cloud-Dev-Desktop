@@ -72,7 +72,7 @@ export default function Home(): ReactNode {
   return (
     <Layout
       title="Cloud Dev Stack"
-      description="A containerized cloud development environment for CasaOS — Ubuntu desktop, VS Code, and SSH all sharing the same /projects folder.">
+      description="A containerized cloud development environment: Ubuntu desktop, VS Code, and SSH all sharing the same /projects folder.">
       <HomepageHeader />
       <main>
         <section className={styles.features}>

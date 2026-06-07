@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Cloud Dev Desktop',
-  tagline: 'CDD — A containerized cloud development environment for CasaOS. Accessible from anywhere.',
+  tagline: 'CDD is a containerized cloud development environment. Accessible from anywhere.',
   favicon: 'img/favicon.ico',
 
   future: {
