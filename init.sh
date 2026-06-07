@@ -197,6 +197,18 @@ ln -sf "$SHARED_EXT" "$CS_DATA/extensions"
 ln -sf "$SHARED_USER" "$CS_DATA/User"
 echo "[cloud-dev] Code-server extensions & settings shared via /shared"
 
+# ---- Desktop VS Code → same shared extensions & settings ----
+# Desktop VS Code uses different paths than code-server, but both can read
+# the same extension dirs. Symlink them to /shared so everything stays in sync.
+VSCODE_EXT="$USER_HOME/.vscode/extensions"
+VSCODE_USER="$USER_HOME/.config/Code/User"
+
+mkdir -p "$(dirname "$VSCODE_EXT")" "$(dirname "$VSCODE_USER")"
+rm -rf "$VSCODE_EXT" "$VSCODE_USER"
+ln -sf "$SHARED_EXT" "$VSCODE_EXT"
+ln -sf "$SHARED_USER" "$VSCODE_USER"
+echo "[cloud-dev] Desktop VS Code extensions & settings shared via /shared"
+
 # ---- Git / GitHub config (from Compose env) ----
 if [ -n "${GIT_USER_NAME}" ] && [ "${GIT_USER_NAME}" != "CHANGE_ME_GIT_NAME" ]; then
     su - "$USER" -c "git config --global user.name '${GIT_USER_NAME}'"

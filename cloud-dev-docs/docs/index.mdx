@@ -8,11 +8,11 @@ A complete, persistent cloud development environment with one shared workspace, 
 
 ## What You Get
 
-- **Ubuntu desktop in your browser**: full XFCE desktop from any device
-- **VS Code in your browser**: same files, same tools, same environment
+- **Ubuntu desktop in your browser**: full XFCE desktop from any device, with VS Code installed as a native desktop app
+- **VS Code in your browser**: same files, same tools, same environment — available as both a standalone container and inside the desktop
 - **SSH access**: connect from local devices like PC, Mac, or iPhone
 - **Persistent tmux sessions**: your work survives disconnects and app switches, especially useful on mobile
-- **Everything shared**: both containers mount the same `/config` (home) and `/projects`. Install a package, set a git config, or save a file and it's visible everywhere instantly
+- **Everything shared**: both containers mount the same `/config` (home) and `/projects`. Install a package, set a git config, or save a file and it's visible everywhere instantly. Extensions and settings are shared across all VS Code instances
 
 ## Architecture
 
@@ -74,7 +74,8 @@ Edit `compose.yaml` → recreate desktop → both containers see the change.
 | Git identity + GitHub token | `/config/.gitconfig` | ✅ Both containers |
 | nvm + Node LTS | `/config/.nvm` | ✅ Both containers |
 | Claude Code | `/config/.npm-global` | ✅ Both containers |
-| VS Code extensions | `/shared/code-server/extensions` | ✅ Both containers |
+| code-server extensions & settings | `/shared/code-server/extensions` + `User/` | ✅ All VS Code instances (code-server ×2 + desktop VS Code) |
+| Desktop VS Code app | Installed by init script (apt) | ✅ Desktop container only |
 | Your projects | `/projects` | ✅ Both containers |
 | Persistent sessions (tmux) | Desktop only | Desktop (via SSH) |
 
@@ -85,6 +86,7 @@ Edit `compose.yaml` → recreate desktop → both containers see the change.
 | nvm + Node LTS | Init script | ✅ `/config/.nvm` |
 | Claude Code | Init script (npm global) | ✅ `/config/.npm-global` |
 | code-server | Init script | ✅ system install |
+| VS Code (desktop app) | Init script (apt) | ❌ Reinstalled each boot |
 | build-essential (gcc, make) | Init script (apt) | ❌ Reinstalled each boot |
 | python3 + pip | Init script (apt) | ❌ Reinstalled each boot |
 | Docker CLI | Init script (apt) | ❌ Reinstalled each boot |

@@ -65,7 +65,8 @@ Mid-task and realize you need more time? Run `tmux-keep` inside the tmux session
 
 You don't need a local machine. Everything runs on the server:
 
-- **VS Code**: browser at `http://<server-ip>:9090`
+- **VS Code (browser)**: at `http://<server-ip>:9090` — standalone code-server, same files and environment
+- **VS Code (desktop app)**: inside the web desktop — launch from the application menu or run `code /projects` in the desktop terminal. Shares extensions and settings with both code-server instances
 - **Terminal**: SSH from anywhere (`ssh -p 3434 abc@<server-ip>`), or use the terminal in the web desktop
 - **Claude Code / long tasks**: inside tmux, survives disconnects
 - **Files**: live at `/projects/`, visible in all apps
@@ -87,7 +88,8 @@ See [Local Setup](./local-setup) for the full configuration.
 | Method | URL / Command | Auth |
 |--------|---------------|------|
 | Ubuntu Desktop (browser) | `http://<server-ip>:3000` | Password |
-| VS Code (browser) | `http://<server-ip>:9090` | Password |
+| VS Code — browser | `http://<server-ip>:9090` | Password |
+| VS Code — desktop app | Inside the web desktop → app menu, or `code /projects` | (same desktop session) |
 | SSH from anywhere | `ssh -p 3434 abc@<server-ip>` | Password |
 | SSH from iPhone (Termius) | `ssh -p 3434 abc@<server-ip>` + set `TMUX_AUTO=1` | Password |
 

@@ -21,13 +21,13 @@ curl -fsSL https://raw.githubusercontent.com/Piero24/Cloud-Dev-Desktop/main/inst
 
 | Service | Image | Purpose |
 |---------|-------|---------|
-| **desktop** | `linuxserver/webtop:ubuntu-xfce` | Full Ubuntu XFCE desktop + SSH + code-server |
+| **desktop** | `linuxserver/webtop:ubuntu-xfce` | Full Ubuntu XFCE desktop + SSH + code-server + VS Code desktop app |
 | **vscode** | `linuxserver/code-server:latest` | VS Code in your browser, same home + files |
 | **beszel-agent** | `henrygd/beszel-agent:latest` | System metrics → your existing Beszel hub |
 
 Both containers share `/config` (home directory) and `/projects`. Install a package or change a setting, it appears in both instantly. The vscode container is a browser based editor view into the same environment.
 
-Pre installed: nvm + Node LTS, Claude Code, code-server, build-essential, Python, Java, Docker CLI, tmux, zsh.
+Pre installed: nvm + Node LTS, Claude Code, code-server, VS Code (desktop app), build-essential, Python, Java, Docker CLI, tmux, zsh.
 
 ## Architecture
 
