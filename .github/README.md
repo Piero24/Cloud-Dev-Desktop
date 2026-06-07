@@ -75,7 +75,7 @@ docker compose up -d
 ## Key features
 
 - **One environment, two views**: both containers share `/config` (home) and `/projects`. Same shell, git, nvm, packages everywhere
-- **Persistent sessions**: tmux auto attach from iPhone/Termius via `TMUX_AUTO=1`; sessions survive disconnects
+- **Persistent sessions**: tmux auto attach via `TMUX_AUTO=1`; sessions survive disconnects
 - **Configurable cleanup**: `TMUX_TIMEOUT` auto kills detached sessions after N hours; `tmux-keep` overrides it
 - **Persistent packages**: everything in `/config` survives container rebuilds
 - **No Mac required**: work entirely from a browser and SSH

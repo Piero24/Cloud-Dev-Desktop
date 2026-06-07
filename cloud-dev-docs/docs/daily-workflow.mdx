@@ -23,23 +23,28 @@ tmux keeps your terminal sessions alive even if you disconnect, essential when w
 ssh -p 3434 abc@<server-ip>       # normal shell closing the terminal stops everything
 ```
 
-**Connect with tmux auto-attach (from Termius):**
+**Connect with tmux auto-attach:**
 
-In Termius, edit your host → add these environment variables:
+Set environment variables when you SSH:
 
 | Key | Value | Purpose |
 |-----|-------|---------|
 | `TMUX_AUTO` | `1` | Auto-attach or create a tmux session on connect |
 | `TMUX_TIMEOUT` | `2` | Kill detached session after N hours (`-1`=never, `0`=on detach) |
 
-Then connect normally:
-
 ```bash
-ssh -p 3434 abc@<server-ip>       # → auto attached to tmux "main" (Termius sent TMUX_AUTO=1)
-claude                             # runs inside tmux survives disconnects
+TMUX_AUTO=1 TMUX_TIMEOUT=2 ssh -p 3434 abc@<server-ip>
+# → auto attached to tmux "main"
+claude                             # runs inside tmux, survives disconnects
 ```
 
-Next time you connect from Termius, you're back in the same tmux session.
+Next time you connect with the same variables, you're back in the same tmux session.
+
+:::tip[Apps like Termius]
+
+If you use Termius or similar apps, set these as host environment variables so you don't need to type them each time.
+
+:::
 
 **Key commands inside tmux:**
 
@@ -65,8 +70,7 @@ Mid-task and realize you need more time? Run `tmux-keep` inside the tmux session
 
 You don't need a local machine. Everything runs on the server:
 
-- **VS Code (browser)**: at `http://<server-ip>:9090` — standalone code-server, same files and environment
-- **VS Code (desktop app)**: inside the web desktop — launch from the application menu or run `code /projects` in the desktop terminal. Shares extensions and settings with both code-server instances
+- **VS Code (browser)**: at `http://<server-ip>:9090` standalone code-server, same files and environment
 - **Terminal**: SSH from anywhere (`ssh -p 3434 abc@<server-ip>`), or use the terminal in the web desktop
 - **Claude Code / long tasks**: inside tmux, survives disconnects
 - **Files**: live at `/projects/`, visible in all apps
@@ -88,8 +92,7 @@ See [Local Setup](./local-setup) for the full configuration.
 | Method | URL / Command | Auth |
 |--------|---------------|------|
 | Ubuntu Desktop (browser) | `http://<server-ip>:3000` | Password |
-| VS Code — browser | `http://<server-ip>:9090` | Password |
-| VS Code — desktop app | Inside the web desktop → app menu, or `code /projects` | (same desktop session) |
+| VS Code, browser | `http://<server-ip>:9090` | Password |
 | SSH from anywhere | `ssh -p 3434 abc@<server-ip>` | Password |
 | SSH from iPhone (Termius) | `ssh -p 3434 abc@<server-ip>` + set `TMUX_AUTO=1` | Password |
 
